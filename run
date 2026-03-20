@@ -1,0 +1,215 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+
+source .env 2>/dev/null || true
+
+# ==============================
+# COLORS
+# ==============================
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# ==============================
+# UI HELPERS
+# ==============================
+
+function title {
+    echo -e "\n${BLUE}========================================${NC}"
+    echo -e "${CYAN}$1${NC}"
+    echo -e "${BLUE}========================================${NC}\n"
+}
+
+function success {
+    echo -e "${GREEN}✔ $1${NC}"
+}
+
+function error {
+    echo -e "${RED}✘ $1${NC}"
+}
+
+# ==============================
+# HELP / LIST
+# ==============================
+
+function list {
+    title "NETGP PROJECT CLI"
+
+    echo -e "${YELLOW}Docker:${NC}"
+    echo "  ./run up"
+    echo "  ./run down"
+    echo "  ./run ps"
+    echo ""
+
+    echo -e "${YELLOW}Nginx:${NC}"
+    echo "  ./run nginx:check"
+    echo "  ./run nginx:reload"
+    echo "  ./run nginx:status"
+    echo ""
+
+    echo -e "${YELLOW}PHP / Laravel:${NC}"
+    echo "  ./run php:console"
+    echo "  ./run visitors:expired"
+    echo "  ./run tests"
+    echo ""
+
+    echo -e "${YELLOW}Database:${NC}"
+    echo "  ./run db:console"
+    echo "  ./run db:reset"
+    echo "  ./run db:populate"
+    echo ""
+
+    echo -e "${YELLOW}Dev:${NC}"
+    echo "  ./run composer install"
+    echo "  ./run permissions"
+    echo "  ./run git:clean:branchs"
+    echo ""
+}
+
+function help {
+    list
+}
+
+# ==============================
+# DOCKER
+# ==============================
+
+function ps {
+    title "Docker Containers"
+    docker compose ps
+}
+
+function up {
+    title "Starting Containers"
+    docker compose up -d "$@"
+
+    docker compose exec php sh -c "
+        mkdir -p storage/framework/{cache,views,sessions,testing} bootstrap/cache && \
+        chown -R www-data:www-data storage bootstrap/cache && \
+        chmod -R 775 storage bootstrap/cache
+    "
+
+    docker compose exec php php artisan key:generate || true
+    success "Environment ready"
+}
+
+function down {
+    title "Stopping Containers"
+    docker compose down "$@"
+    success "Containers stopped"
+}
+
+# ==============================
+# PERMISSIONS
+# ==============================
+
+function permissions {
+    title "Fixing Permissions"
+    sudo chown -R $(whoami):$(whoami) storage bootstrap/cache
+    chmod -R 775 storage bootstrap/cache
+    success "Permissions fixed"
+}
+
+# ==============================
+# COMPOSER
+# ==============================
+
+function composer {
+    title "Running Composer"
+    docker compose exec php composer "$@"
+}
+
+# ==============================
+# NGINX
+# ==============================
+
+function nginx:check {
+    title "Checking Nginx Config"
+    docker compose exec web nginx -t
+}
+
+function nginx:reload {
+    title "Reloading Nginx"
+    docker compose exec web nginx -s reload
+    success "Nginx reloaded"
+}
+
+function nginx:status {
+    docker compose exec web service nginx status
+}
+
+# ==============================
+# PHP
+# ==============================
+
+function php:console {
+    docker compose exec php php -a
+}
+
+# ==============================
+# VISITORS
+# ==============================
+
+function visitors:expired {
+    title "Processing Expired Visitors"
+    docker compose exec php php artisan visitors:disable-expired
+    success "Visitors processed"
+}
+
+# ==============================
+# TESTS
+# ==============================
+
+function tests {
+    title "Running Test Suite"
+    docker compose exec php php artisan test
+}
+
+# ==============================
+# GIT
+# ==============================
+
+function git:clean:branchs {
+    title "Cleaning Local Branches"
+    git branch | grep -v '\*\|master\|main\|develop\|production' | xargs -n 1 git branch -D
+    success "Branches cleaned"
+}
+
+# ==============================
+# DATABASE
+# ==============================
+
+function db:console {
+    docker compose exec db psql -U ${DB_USERNAME} -d ${DB_DATABASE}
+}
+
+function db:reset {
+    title "Resetting Database"
+    docker compose exec php php artisan migrate:fresh --seed
+    success "Database reset"
+}
+
+function db:populate {
+    title "Seeding Database"
+    docker compose exec php php artisan db:seed
+    success "Database populated"
+}
+
+# ==============================
+# COMMAND HANDLER
+# ==============================
+
+if declare -f "$1" > /dev/null; then
+    TIMEFORMAT=$'\nCompleted in %3lR'
+    time "$@"
+else
+    error "Unknown command: $1"
+    list
+    exit 1
+fi

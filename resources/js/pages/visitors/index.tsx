@@ -1,0 +1,220 @@
+import { ConfirmDialog } from "@/components/confrm-dialog";
+import Pagination from "@/components/pagination";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import VisitorsFilters from "@/components/visitors/visitors-filters";
+import AppLayout from "@/layouts/app-layout";
+import visitors from "@/routes/visitors";
+import { type BreadcrumbItem } from "@/types";
+import { Head, Link, router, usePage } from "@inertiajs/react";
+import debounce from "lodash.debounce";
+import { Edit, Trash2, SlidersHorizontal } from "lucide-react";
+import { useEffect, useState } from "react";
+
+export default function VisitorsIndex() {
+    const { props }: any = usePage();
+    const { visitors: paginated, filters, types } = props;
+
+    const [search, setSearch] = useState(filters?.search || "");
+    const [showFilters, setShowFilters] = useState(false);
+    const [typing, setTyping] = useState(false);
+    const [currentFilters, setCurrentFilters] = useState(filters || {});
+
+    const sort = filters?.sort || "id";
+    const direction = filters?.direction || "desc";
+
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: "Visitantes", href: visitors.index.get().url },
+    ];
+
+    const liveSearch = debounce((value: string) => {
+        setCurrentFilters(!!currentFilters)
+        router.get(
+            visitors.index.get().url,
+            { ...currentFilters, search: value },
+            { preserveState: false, preserveScroll: true }
+        );
+        setTyping(false);
+    }, 300);
+
+    useEffect(() => {
+        if (typing) liveSearch(search);
+    }, [search]);
+
+    const handleSort = (column: string) => {
+        const newDirection =
+            sort === column && direction === "asc" ? "desc" : "asc";
+
+        router.get(
+            visitors.index.get().url,
+            {
+                ...currentFilters,
+                search,
+                sort: column,
+                direction: newDirection,
+            },
+            { preserveState: false, preserveScroll: true }
+        );
+    };
+
+    const handleFilterChange = (newFilters: any) => {
+        setCurrentFilters(newFilters);
+        router.get(visitors.index.get().url, newFilters, {
+            preserveState: false,
+            preserveScroll: true,
+        });
+    };
+
+    const handleFilterClear = () => {
+        setCurrentFilters({});
+        router.get(visitors.index.get().url, {}, {
+            preserveState: false,
+            preserveScroll: true,
+        });
+        setSearch("");
+    };
+
+    const items = paginated.data;
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Visitantes" />
+
+            <div className="flex flex-col gap-4 p-4 sm:p-6">
+
+                {/* HEADER */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+
+                    {/* BUSCA + BOTÃO FILTROS */}
+                    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:w-auto">
+                        <Input
+                            placeholder="Pesquisar nome, email ou CPF..."
+                            value={search}
+                            onChange={(e) => {
+                                setSearch(e.target.value);
+                                setTyping(true);
+                            }}
+                            className="w-full sm:w-64"
+                        />
+
+                        <Button onClick={() => liveSearch.flush()}>Buscar</Button>
+
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowFilters(!showFilters)}
+                            className="flex items-center gap-2"
+                        >
+                            <SlidersHorizontal className="h-4 w-4" />
+                            {showFilters ? "Esconder filtros" : "Filtros"}
+                        </Button>
+                    </div>
+
+                    {/* CRIAR */}
+                    <Link
+                        href={visitors.create.get().url}
+                        className="mt-2 w-full sm:mt-0 sm:w-auto"
+                    >
+                        <Button className="w-full sm:w-auto">Criar Visitante</Button>
+                    </Link>
+                </div>
+
+                {/* FILTROS EXPANDIDOS */}
+                {showFilters && (
+                    <VisitorsFilters
+                        filters={currentFilters}
+                        types={types}
+                        onChange={handleFilterChange}
+                        onClear={handleFilterClear}
+                        userDepartmentId={props.user_department_id}
+                        departments={props.departments}
+                    />
+                )}
+
+                {/* TABELA */}
+                <div className="overflow-x-auto rounded-xl border">
+                    <Table className="min-w-[900px]">
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>#</TableHead>
+                                <TableHead
+                                    onClick={() => handleSort("name")}
+                                    className="cursor-pointer select-none"
+                                >
+                                    Nome{" "}
+                                    {sort === "name"
+                                        ? direction === "asc"
+                                            ? "↑"
+                                            : "↓"
+                                        : ""}
+                                </TableHead>
+                                <TableHead>CPF</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Tipo</TableHead>
+                                <TableHead>Criado por</TableHead>
+                                <TableHead>Criado em</TableHead>
+                                <TableHead className="text-right">Ações</TableHead>
+                            </TableRow>
+                        </TableHeader>
+
+                        <TableBody>
+                            {items.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={8} className="py-6 text-center">
+                                        Nenhum resultado encontrado.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+
+                            {items.map((v: any, index: number) => (
+                                <TableRow key={v.id}>
+                                    <TableCell>{paginated.from + index}</TableCell>
+                                    <TableCell>{v.name}</TableCell>
+                                    <TableCell>{v.cpf}</TableCell>
+                                    <TableCell>{v.email || "—"}</TableCell>
+                                    <TableCell>{v.type?.name || "—"}</TableCell>
+                                    <TableCell>{v.creator?.name || "—"}</TableCell>
+                                    <TableCell>
+                                        {new Date(v.created_at).toLocaleDateString("pt-BR")}
+                                    </TableCell>
+                                    <TableCell className="flex justify-end gap-2">
+                                        <Link href={visitors.edit({ visitor: v.id }).url}>
+                                            <Button variant="outline" className="flex items-center gap-1">
+                                                <Edit className="h-4 w-4" /> Editar
+                                            </Button>
+                                        </Link>
+
+                                        <ConfirmDialog
+                                            onConfirm={() =>
+                                                router.delete(visitors.destroy(v.id).url, { preserveScroll: true })
+                                            }
+                                            title="Excluir Visitante"
+                                            description={`Tem certeza que deseja excluir "${v.name}"?`}
+                                            trigger={
+                                                <Button variant="destructive" className="flex items-center gap-1">
+                                                    <Trash2 className="h-4 w-4" /> Excluir
+                                                </Button>
+                                            }
+                                        />
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                {/* PAGINAÇÃO */}
+                {paginated.total > paginated.per_page && (
+                    <Pagination links={paginated.links} />
+                )}
+            </div>
+        </AppLayout>
+    );
+}
