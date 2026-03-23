@@ -15,6 +15,7 @@ import { type BreadcrumbItem } from '@/types';
 import { maskCPF, maskPhone } from '@/utils/masks';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 
 export default function CreateVisitor({ types }: any) {
     const breadcrumbs: BreadcrumbItem[] = [
@@ -35,6 +36,22 @@ export default function CreateVisitor({ types }: any) {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!data.expires_at) {
+            toast("Informe uma data de expiração.");
+            return;
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const selectedDate = new Date(data.expires_at + "T00:00:00");
+
+        if (selectedDate < today) {
+            toast("A data de expiração não pode ser menor que hoje.");
+            return;
+        }
+
         post(visitors.store.post().url);
     };
 
@@ -163,6 +180,7 @@ export default function CreateVisitor({ types }: any) {
                                 name="expires_at"
                                 type="date"
                                 value={data.expires_at}
+                                min={new Date().toISOString().split('T')[0]}
                                 onChange={(e) =>
                                     setData('expires_at', e.target.value)
                                 }
