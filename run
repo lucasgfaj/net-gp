@@ -89,6 +89,9 @@ function up {
     title "Starting Containers"
     docker compose up -d "$@"
 
+    title "Installing Composer Dependencies (first run)"
+    docker compose exec php composer install || true
+
     docker compose exec php sh -c "
         mkdir -p storage/framework/{cache,views,sessions,testing} bootstrap/cache && \
         chown -R www-data:www-data storage bootstrap/cache && \
@@ -114,6 +117,17 @@ function permissions {
     sudo chown -R $(whoami):$(whoami) storage bootstrap/cache
     chmod -R 775 storage bootstrap/cache
     success "Permissions fixed"
+}
+
+# ==============================
+# STORAGE
+# ==============================
+
+function storage {
+    title "Fixing Storage"
+    sudo chown -R 33:33 storage bootstrap/cache
+    sudo chmod -R 775 storage bootstrap/cache
+    success "Storage as fixed"
 }
 
 # ==============================

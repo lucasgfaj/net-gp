@@ -21,16 +21,11 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p /home/www-data \
+    && chown -R www-data:www-data /home/www-data
 
-# Copia chave SSH para dentro do container
-COPY .ssh/id_ed25519_php /var/www/.ssh/id_ed25519_php
-COPY .ssh/id_ed25519_php.pub /var/www/.ssh/id_ed25519_php.pub
+RUN echo "StrictModes no" >> /etc/ssh/ssh_config
 
-# Permissões corretas
-RUN chown www-data:www-data /var/www/.ssh/id_ed25519_php* \
-    && chmod 600 /var/www/.ssh/id_ed25519_php \
-    && chmod 644 /var/www/.ssh/id_ed25519_php.pub
-    
 # Configura timezone para America/Sao_Paulo
 RUN ln -fs /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime \
     && dpkg-reconfigure -f noninteractive tzdata \
@@ -41,3 +36,6 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && corepack enable \
     && corepack prepare yarn@stable --activate
+
+# Instala Composer oficial
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
