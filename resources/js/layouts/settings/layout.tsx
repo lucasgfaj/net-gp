@@ -16,11 +16,11 @@ const sidebarNavItems: NavItem[] = [
         href: edit(),
         icon: null,
     },
-    {
-        title: 'Senha',
-        href: editPassword(),
-        icon: null,
-    },
+    // {
+    //     title: 'Senha',
+    //     href: editPassword(),
+    //     icon: null,
+    // },
     // {
     //     title: 'Autenticação em Duas Etapas',
     //     href: show(),

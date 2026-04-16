@@ -32,14 +32,10 @@ class CreateNewUser implements CreatesNewUsers
 
             'department_id' => ['required', 'integer', 'exists:departments,id'],
 
-            // agora o role não vem mais do input (opcional)
             'role' => ['nullable', 'string', Rule::in(['admin', 'operator'])],
         ])->validate();
 
 
-        // 🛡 REGRA DE OURO:
-        // Se o usuário logado é admin → ele decide o role
-        // Se NÃO é admin → o role sempre será operator
         $role = 'operator';
 
         if (Auth::check() && Auth::user()->role === 'admin') {
@@ -49,7 +45,7 @@ class CreateNewUser implements CreatesNewUsers
         return User::create([
             'name' => $input['name'],
             'email' => $input['email'],
-            'password' => $input['password'], // hashed automaticamente pelo cast
+            'password' => $input['password'],
             'department_id' => $input['department_id'],
             'role' => $role,
         ]);

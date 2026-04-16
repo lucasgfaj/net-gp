@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
+use App\Actions\Fortify\AuthenticateUsingLdap;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -31,6 +32,7 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
+        Fortify::authenticateUsing(new AuthenticateUsingLdap);
     }
 
     /**

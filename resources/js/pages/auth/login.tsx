@@ -10,22 +10,25 @@ import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/react';
-
+import { Eye, EyeOff } from 'lucide-react';
+import { useState } from 'react';
 interface LoginProps {
     status?: string;
     canResetPassword: boolean;
     canRegister: boolean;
 }
-
 export default function Login({
     status,
     canResetPassword,
     canRegister,
 }: LoginProps) {
+
+    const [showPassword, setShowPassword] = useState(false);
+
     return (
         <AuthLayout
-            title="Faça login na sua conta"
-            description="Digite seu e-mail e sua senha abaixo para entrar"
+            title="Seja bem-vindo ao NET-GP!"
+            description="Digite seu usuário institucional e sua senha abaixo para entrar"
         >
             <Head title="Login" />
 
@@ -38,16 +41,16 @@ export default function Login({
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Endereço de E-mail</Label>
+                                <Label htmlFor="email">Usuário institucional</Label>
                                 <Input
                                     id="email"
-                                    type="email"
+                                    type="text"
                                     name="email"
                                     required
                                     autoFocus
                                     tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@utfpr.edu.br"
+                                    autoComplete="username"
+                                    pattern="^[a-z]+(\.[a-z]+)?$"
                                 />
                                 <InputError message={errors.email} />
                             </div>
@@ -55,25 +58,30 @@ export default function Login({
                             <div className="grid gap-2">
                                 <div className="flex items-center">
                                     <Label htmlFor="password">Senha</Label>
-                                    {true && (
-                                        <TextLink
-                                            href={request()}
-                                            className="ml-auto text-sm"
-                                            tabIndex={5}
-                                        >
-                                            Esqueceu sua senha?
-                                        </TextLink>
-                                    )}
                                 </div>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    name="password"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="current-password"
-                                    placeholder="Insira sua senha"
-                                />
+
+                                <div className="relative">
+                                    <Input
+                                        id="password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        name="password"
+                                        required
+                                        tabIndex={2}
+                                        autoComplete="current-password"
+                                        placeholder="Insira sua senha"
+                                        className="pr-10"
+                                    />
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword((v) => !v)}
+                                        className="absolute inset-y-0 right-2 flex items-center text-muted-foreground"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+
                                 <InputError message={errors.password} />
                             </div>
 

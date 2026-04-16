@@ -7,11 +7,23 @@ use App\Models\Department;
 
 class DepartmentSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        Department::firstOrCreate(['name' => 'COGETI']);
+        $departments = [
+            'COGETI',
+            'ASCOM',
+            'DIRGRAD',
+            'COINT',
+            'PROPPG',
+            'PROREC',
+            'PROPLAD',
+            'PROGRAD',
+        ];
+
+        foreach ($departments as $name) {
+            Department::firstOrCreate([
+                'name' => $name,
+            ]);
+        }
     }
 }

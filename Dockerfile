@@ -4,6 +4,7 @@ FROM php:8.3.4-fpm
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     libzip-dev \
+    libldap2-dev \
     libssh2-1-dev \
     zip \
     tzdata \
@@ -14,10 +15,13 @@ RUN apt-get update && apt-get install -y \
     g++ \
     make \
     openssh-client \
+    git \
     && docker-php-ext-configure zip \
     && docker-php-ext-install pdo_pgsql zip \
-    && pecl install ssh2 \
-    && docker-php-ext-enable ssh2 \
+    && docker-php-ext-configure ldap --with-libdir=lib/x86_64-linux-gnu \
+    && docker-php-ext-install ldap \
+    && git clone https://github.com/php/pecl-networking-ssh2.git /usr/src/php/ext/ssh2 \
+    && docker-php-ext-install ssh2 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

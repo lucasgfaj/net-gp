@@ -74,13 +74,10 @@ export default function UsersIndex() {
             <Head title="Usuários" />
 
             <div className="flex flex-col gap-4 p-4 sm:p-6">
-                {/* HEADER */}
                 <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
 
-                    {/* BUSCA + FILTROS */}
                     <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                         
-                        {/* PESQUISA */}
                         <Input
                             placeholder="Pesquisar..."
                             value={search}
@@ -95,7 +92,6 @@ export default function UsersIndex() {
                             Buscar
                         </Button>
 
-                        {/* BOTÃO FILTROS */}
                         <Button
                             variant="outline"
                             onClick={() => setShowFilters(!showFilters)}
@@ -106,18 +102,16 @@ export default function UsersIndex() {
                         </Button>
                     </div>
 
-                    {/* CRIAR */}
-                    <Link
+                    {/* <Link
                         href={users.create.get().url}
                         className="mt-2 w-full sm:mt-0 sm:w-auto"
                     >
                         <Button className="w-full sm:w-auto">
                             Criar Usuário
                         </Button>
-                    </Link>
+                    </Link> */}
                 </div>
 
-                {/* ÁREA DOS FILTROS EXPANDÍVEL */}
                 {showFilters && (
                     <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-200">
                         <UsersFilters
@@ -139,7 +133,6 @@ export default function UsersIndex() {
                     </div>
                 )}
 
-                {/* TABELA */}
                 <div className="overflow-x-auto rounded-xl border">
                     <Table className="min-w-[600px]">
                         <TableHeader>
@@ -196,7 +189,6 @@ export default function UsersIndex() {
                                     </TableCell>
 
                                     <TableCell className="flex justify-end gap-2">
-                                        {/* EDIT */}
                                         <Link
                                             href={users.edit({ user: d.id }).url}
                                         >
@@ -204,12 +196,11 @@ export default function UsersIndex() {
                                                 variant="outline"
                                                 className="flex items-center gap-1"
                                             >
-                                                <Edit className="h-4 w-4" /> Editar
+                                                <Edit className="h-4 w-4" /> Visualizar
                                             </Button>
                                         </Link>
 
-                                        {/* DELETE */}
-                                        <ConfirmDialog
+                                        {/* <ConfirmDialog
                                             onConfirm={() =>
                                                 router.delete(
                                                     users.destroy(d.id).url,
@@ -226,7 +217,7 @@ export default function UsersIndex() {
                                                     <Trash2 className="h-4 w-4" /> Excluir
                                                 </Button>
                                             }
-                                        />
+                                        /> */}
                                     </TableCell>
                                 </TableRow>
                             ))}
