@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DepartmentsController;
 use App\Http\Controllers\VisitorsController;
+use App\Http\Controllers\VisitorTypeController;
 use App\Http\Controllers\VouchersController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -26,6 +27,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('departments', DepartmentsController::class);
+});
+
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::resource('visitorTypes', VisitorTypeController::class);
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
