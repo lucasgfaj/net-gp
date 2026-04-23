@@ -28,7 +28,14 @@ RUN apt-get update && apt-get install -y \
 RUN mkdir -p /home/www-data \
     && chown -R www-data:www-data /home/www-data
 
-RUN echo "StrictModes no" >> /etc/ssh/ssh_config
+RUN mkdir -p /var/www/.ssh \
+    && chown -R www-data:www-data /var/www/.ssh \
+    && chmod 700 /var/www/.ssh
+
+COPY docker/ssh/id_ed25519_php /var/www/.ssh/id_ed25519_php
+
+RUN chown www-data:www-data /var/www/.ssh/id_ed25519_php \
+    && chmod 600 /var/www/.ssh/id_ed25519_php
 
 # Configura timezone para America/Sao_Paulo
 RUN ln -fs /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime \

@@ -29,3 +29,6 @@ yarn-error.log
 .ssh/
 .ssh/*
 /logs/*.log
+/log/nginx/*.log
+docker/ssh/*
+!docker/ssh/.gitkeep

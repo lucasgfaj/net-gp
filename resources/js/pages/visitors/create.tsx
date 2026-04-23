@@ -17,7 +17,9 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
+
 export default function CreateVisitor({ types }: any) {
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Visitantes', href: visitors.index.get().url },
         { title: 'Criar', href: '#' },
@@ -86,6 +88,7 @@ export default function CreateVisitor({ types }: any) {
                                 onChange={(e) =>
                                     setData('name', e.target.value)
                                 }
+                               placeholder="Nome"
                             />
                             <FieldError message={errors.name} />
                         </div>
@@ -96,6 +99,7 @@ export default function CreateVisitor({ types }: any) {
                                 name="cpf"
                                 value={maskCPF(data.cpf)}
                                 onChange={(e) => setData('cpf', e.target.value)}
+                                placeholder="11023843912"
                             />
                             <FieldError message={errors.cpf} />
 
@@ -116,7 +120,7 @@ export default function CreateVisitor({ types }: any) {
                                     setData('phone', maskPhone(e.target.value));
                                 }}
                                 inputMode="numeric"
-                                placeholder="(42) 98868-7949"
+                                placeholder="(42) 92361-7241"
                             />
                             <FieldError message={errors.phone} />
                         </div>
@@ -127,6 +131,7 @@ export default function CreateVisitor({ types }: any) {
                                 name="email"
                                 type="email"
                                 value={data.email}
+                                placeholder="usuarios@email.com"
                                 onChange={(e) =>
                                     setData('email', e.target.value)
                                 }
@@ -136,40 +141,36 @@ export default function CreateVisitor({ types }: any) {
 
                         <div>
                             <Label>Tipo</Label>
+
                             <Select
                                 value={String(data.type_id)}
-                                onValueChange={(value) =>
-                                    setData('type_id', value)
-                                }
+                                onValueChange={(value) => setData('type_id', value)}
                             >
-                                <SelectTrigger
-                                    className="w-full"
-                                    name="type_id"
-                                >
-                                    <SelectValue placeholder="Selecione" />
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Selecione o tipo" />
                                 </SelectTrigger>
-                                <SelectContent>
+
+                                <SelectContent className="max-h-60 overflow-y-auto">
                                     {types.map((t: any) => (
-                                        <SelectItem
-                                            key={t.id}
-                                            value={String(t.id)}
-                                        >
+                                        <SelectItem key={t.id} value={String(t.id)}>
                                             {t.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
+
                             <FieldError message={errors.type_id} />
                         </div>
 
                         <div>
-                            <Label>Instituição</Label>
+                            <Label>Instituição / Vínculo</Label>
                             <Input
                                 name="school"
                                 value={data.school}
                                 onChange={(e) =>
                                     setData('school', e.target.value)
                                 }
+                                placeholder="Instituição / Vínculo"
                             />
                             <FieldError message={errors.school} />
                         </div>

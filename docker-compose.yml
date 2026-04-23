@@ -21,7 +21,6 @@ services:
     working_dir: /var/www
     volumes:
       - .:/var/www
-      - ${HOME}/.ssh:/var/www/.ssh:ro
     networks:
       - app-network
     depends_on:
