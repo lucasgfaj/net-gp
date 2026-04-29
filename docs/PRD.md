@@ -31,6 +31,7 @@ Sistema web para gestão de visitantes com criação automática de vouchers de 
 | Laravel | 12.x | Framework PHP |
 | React | 18.x | Framework frontend |
 | Inertia | 2.x | Adapter React para Laravel |
+| Tailwind CSS | 3.x | Framework CSS |
 | MySQL/PostgreSQL | 8.x+ | Banco de dados |
 | Docker | Latest | Containerização |
 | LDAP/AD | - | Autenticação |

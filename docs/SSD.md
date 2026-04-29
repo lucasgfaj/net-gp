@@ -14,6 +14,7 @@ Sistema de Gerenciamento de Visitantes com vouchers temporários para acesso à 
 | Inertia | 2.x | Adapter React para Laravel |
 | React | 18.x | Framework frontend |
 | Vite | 6.x | Build tool frontend |
+| Tailwind CSS | 3.x | Framework CSS |
 | MySQL/PostgreSQL | 8.x+ | Banco de dados |
 | Docker | Latest | Containerização |
 | phpseclib3 | 3.x | Biblioteca SSH |
