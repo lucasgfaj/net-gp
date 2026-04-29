@@ -69,7 +69,7 @@ erDiagram
 
     departments {
         bigint id PK
-        string name "unique: COGETI, ASCOM, etc"
+        string name "unique: DEPTO_1, DEPTO_2, etc"
         timestamp timestamps
     }
 
@@ -134,7 +134,7 @@ erDiagram
 | Tabela | Campo | Tipo | Descrição |
 |--------|-------|------|-----------|
 | `departments` | id | bigint | PK |
-| | name | string | Nome único (COGETI, ASCOM, etc) |
+| | name | string | Nome único (DEPTO_1, DEPTO_2, etc) |
 | `users` | id | bigint | PK |
 | | ldap_dn | string | DN do AD |
 | | username | string | username do AD |
@@ -177,7 +177,7 @@ erDiagram
    ├── Busca usuário pelo sAMAccountName
    ├── Extrai grupos (memberOf)
 4. Mapeia department pelos grupos CN
-5. Mapeia role: COGETI → admin, outros → operator
+5. Mapeia role: ADMIN_GROUP → admin, outros → operator
 6. Cria/atualiza usuário na tabela users
 7. Loga no sistema
 ```
@@ -186,11 +186,11 @@ erDiagram
 
 | Variável | Descrição | Exemplo |
 |----------|----------|---------|
-| LDAP_HOST | Host do AD | ldap://ldap.utfpr.edu.br |
+| LDAP_HOST | Host do AD | ldap://ldap.dominio.local |
 | LDAP_PORT | Porta (389) | 389 |
-| LDAP_BASE_DN | Base DN | dc=utfpr,dc=edu,dc=br |
-| LDAP_DOMAIN | Domínio | utfpr.edu.br |
-| LDAP_ADMIN_GROUP | Grupo admin | COGETI |
+| LDAP_BASE_DN | Base DN | dc=dominio,dc=local |
+| LDAP_DOMAIN | Domínio | dominio.local |
+| LDAP_ADMIN_GROUP | Grupo admin | ADMIN_GROUP |
 
 ---
 
@@ -200,7 +200,7 @@ erDiagram
 
 - **Biblioteca**: phpseclib3
 - **Autenticação**: Chave privada RSA
-- **Host**: Configurável em `config/app.php`
+- **Host**: Configurável via variável de ambiente
 
 ### 5.2 Comandos SSH
 
@@ -219,6 +219,7 @@ return [
     'port_smb' => env('PORT_SMB', 22),
     'user_smb' => env('USER_SMB'),
     'path_ssh_smb' => env('PATH_SSH_SMB'),
+];
 ];
 ```
 
@@ -287,12 +288,12 @@ Executa **diariamente às 00:00**:
 
 | Role | Descrição |
 |------|-----------|
-| `admin` | Acesso total (grupo COGETI no AD) |
+| `admin` | Acesso total (grupo ADMIN_GROUP no AD) |
 | `operator` | Acesso restrito ao seu departamento |
 
 ### 8.2 Filtros por Departamento
 
-- **COGETI (id=1)**: Vê todos os departamentos
+- **ADMIN_GROUP**: Vê todos os departamentos
 - **Outros departamentos**: Vê apenas dados do seu department_id
 
 ---
@@ -303,12 +304,13 @@ Executa **diariamente às 00:00**:
 
 | # | Pendência | Prioridade | Status |
 |---|----------|-----------|--------|
-| 1 | Adicionar `created_by` em visitor_vouchers | Alta | Pendente |
-| 2 | Popular activity_logs nos controllers | Alta | Pendente |
-| 3 | Dashboard com métricas | Alta | Pendente |
-| 4 | Enviar email com link de redefinição | Média | Pendente |
-| 5 | Notificações de vouchers prestes a expirar | Média | Pendente |
-| 6 | Relatórios (PDF/Excel) | Baixa | Pendente |
+| 1 | Adicionar `created_by` em visitor_vouchers | Alta | ✓ Concluído |
+| 2 | Popular activity_logs nos controllers | Alta | ✓ Concluído |
+| 3 | Dashboard com métricas | Alta | ✓ Concluído |
+| 4 | Exibir creator + dept nas listagens | Alta | Pendente |
+| 5 | Enviar email com link de redefinição | Média | Pendente |
+| 6 | Notificações de vouchers prestes a expirar | Média | Pendente |
+| 7 | Relatórios (PDF/Excel) | Baixa | Pendente |
 
 ### 9.2 Melhorias Futuras
 
@@ -335,12 +337,12 @@ DB_USERNAME=root
 DB_PASSWORD=
 
 # LDAP
-LDAP_HOST=ldap://ldap.utfpr.edu.br
+LDAP_HOST=ldap://ldap.dominio.local
 LDAP_PORT=389
-LDAP_BASE_DN=dc=utfpr,dc=edu,dc=br
-LDAP_DOMAIN=utfpr.edu.br
-LDAP_EMAIL_DOMAIN=utfpr.edu.br
-LDAP_ADMIN_GROUP=COGETI
+LDAP_BASE_DN=dc=dominio,dc=local
+LDAP_DOMAIN=dominio.local
+LDAP_EMAIL_DOMAIN=dominio.local
+LDAP_ADMIN_GROUP=ADMIN_GROUP
 
 # SSH/Samba
 IP_SMB=10.x.x.x

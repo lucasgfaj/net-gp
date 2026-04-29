@@ -14,7 +14,7 @@ Sistema web para gestão de visitantes com criação automática de vouchers de 
 - **Visitantes**: Recebem credenciais de acesso temporário
 
 ### 1.4 Problema que resolve
-- Gestionar访问os de visitantes à rede WiFi corporativa
+- Gestionar os de visitantes à rede WiFi corporativa
 - Controle de acesso temporário com expiração automática
 - Rastreabilidade completa de quem criou cada acesso
 - Conformidade com políticas de segurança
@@ -286,21 +286,21 @@ Pós-condições: Accessos removidos
 │                                                      │
 │  Visitantes por Departamento                             │
 │  ┌─────────────────────────────────────────────────┐│
-│  │ COGETI: 45   ████████████               ││
-│  │ ASCOM: 23    ██████                       ││
-│  │ NTI: 15      ████                         ││
+│  │ DEPTO_1: 45   ████████████               ││
+│  │ DEPTO_2: 23    ██████                       ││
+│  │ DEPTO_3: 15      ████                         ││
 │  └─────────────────────────────────────────────────┘│
 │                                                      │
 │  Próximos a Expirar (7 dias)                        │
 │  ┌─────────────────────────────────────────────────┐│
-│  │ João Silva  -  30/04/2026  -  COGETI      ││
-│  │ Maria Santos -  01/05/2026  -  ASCOM     ││
+│  │ João Silva  -  30/04/2026  -  DEPTO_1      ││
+│  │ Maria Santos -  01/05/2026  -  DEPTO_2     ││
 │  └─────────────────────────────────────────────────┘│
 │                                                      │
 │  Últimas Atividades                                │
 │  ┌─────────────────────────────────────────────────┐│
-│  │ COGETI\joão criou Maria Silva      10:30       ││
-│  │ ASCOM\maria criou João Santos    09:15         ││
+│  │ DEPTO_1\joão criou Maria Silva      10:30       ││
+│  │ DEPTO_2\maria criou João Santos    09:15         ││
 │  └─────────────────────────────────────────────────┘│
 └──────────────────────────────────────────────────────┘
 ```
@@ -315,12 +315,12 @@ Pós-condições: Accessos removidos
 │  ├───────────────────────────────────────────────────────│
 │  │ Nome         │ CPF         │ Tipo     │ Criado Por  │ Validade │
 │  ├────────────┼────────────┼─────────┼───────────┼─────────┤
-│  │ João Silva │ 123456789 │ Aluno   │ joão/COGETI│ 30/04   │
-│  │ Maria     │ 987654321 │ Professor│ maria/ASCOM│ 15/05   │
-│  │ José     │ 456123789 │ Visitante│ joão/COGETI│ Expira  │
+│  │ João Silva │ 123456789 │ Aluno   │ joão/DEPTO_1│ 30/04   │
+│  │ Maria     │ 987654321 │ Professor│ maria/DEPTO_2│ 15/05   │
+│  │ José     │ 456123789 │ Visitante│ joão/DEPTO_1│ Expira  │
 │  └──────────────────────────────────────────────────────┘
 │  < Página 1 de 10 > [1] [2] [3] ...               │
-└────────────────────────────────────────���─────────────┘
+└───────────────────────────────────────────────────────┘
 ```
 
 ---
