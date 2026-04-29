@@ -11,6 +11,7 @@ use App\Notifications\ResendVisitorLogin;
 use App\Notifications\UpdateVisitorLogin;
 use App\Notifications\VisitorLogin;
 use App\Rules\CpfRule;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -22,10 +23,12 @@ class VisitorsController extends Controller
 {
 
     private SambaService $sambaService;
+    private ActivityLogService $activityLogService;
 
-    public function __construct(SambaService $sambaService)
+    public function __construct(SambaService $sambaService, ActivityLogService $activityLogService)
     {
         $this->sambaService = $sambaService;
+        $this->activityLogService = $activityLogService;
     }
 
     public function index(VisitorIndexRequest $request)
@@ -125,6 +128,11 @@ class VisitorsController extends Controller
         }
 
         DB::commit();
+
+        $this->activityLogService->logVisitorCreated(
+            $visitor->id,
+            $visitor->name
+        );
 
         if ($visitor->email) {
             $visitor->notify(
@@ -243,6 +251,11 @@ class VisitorsController extends Controller
             // dispatch(new SendVoucherMail($visitor, $voucher));
         }
 
+        $this->activityLogService->logVisitorUpdated(
+            $visitor->id,
+            $visitor->name
+        );
+
         return back()->with('success', 'Visitante atualizado com sucesso.');
     }
 
@@ -276,7 +289,7 @@ class VisitorsController extends Controller
             );
         }
 
-        // Envia e-mail somente se tiver e-mail
+        // Envia e-mail solamente se tiver e-mail
         if ($visitor->email) {
             $visitor->notify(
                 new UpdateVisitorLogin(
@@ -286,6 +299,11 @@ class VisitorsController extends Controller
                 )
             );
         }
+
+        $this->activityLogService->logPasswordGenerated(
+            $visitor->id,
+            $visitor->name
+        );
 
         return back()->with('success', 'Nova senha gerada e enviada com sucesso.');
     }
@@ -321,6 +339,11 @@ class VisitorsController extends Controller
         $this->sambaService->deleteSambaUser($login);
 
         Voucher::where('visitor_id', $visitor->id)->delete();
+
+        $this->activityLogService->logVisitorDeleted(
+            $visitor->id,
+            $visitor->name
+        );
 
         $visitor->delete();
 

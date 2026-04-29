@@ -20,6 +20,7 @@ class Voucher extends Model
         'phone_private',
         'phone_public',
         'auto_generated',
+        'created_by',
     ];
 
     protected $casts = [
@@ -33,6 +34,11 @@ class Voucher extends Model
     public function visitor()
     {
         return $this->belongsTo(Visitor::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
 
