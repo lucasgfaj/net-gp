@@ -23,7 +23,19 @@ Sistema web para gestão de visitantes com criação automática de vouchers de 
 
 ## 2. Requisitos Funcionais
 
-### 2.1 Módulo de Autenticação
+### 2.1 Tecnologias
+
+| Tecnologia | Versão | Descrição |
+|------------|--------|-----------|
+| PHP | 8.2+ | Linguagem backend |
+| Laravel | 12.x | Framework PHP |
+| React | 18.x | Framework frontend |
+| Inertia | 2.x | Adapter React para Laravel |
+| MySQL/PostgreSQL | 8.x+ | Banco de dados |
+| Docker | Latest | Containerização |
+| LDAP/AD | - | Autenticação |
+
+### 2.2 Módulo de Autenticação
 
 | # | Requisito | Descrição | Prioridade |
 |---|----------|-----------|------------|

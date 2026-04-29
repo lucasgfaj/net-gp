@@ -6,11 +6,18 @@
 Sistema de Gerenciamento de Visitantes com vouchers temporários para acesso à rede corporativa. O sistema cria usuários no Samba/AD via SSH e os remove automaticamente após expiração.
 
 ### 1.2 Tecnologias
-- **Backend**: Laravel 12 + Inertia
-- **Frontend**: React (via Inertia)
-- **BD**: MySQL/PostgreSQL (configurável)
-- **Autenticação**: LDAP/Active Directory
-- **Infraestrutura**: SSH + Samba Tool
+
+| Tecnologia | Versão | Descrição |
+|------------|--------|-----------|
+| PHP | 8.2+ | Linguagem backend |
+| Laravel | 12.x | Framework PHP |
+| Inertia | 2.x | Adapter React para Laravel |
+| React | 18.x | Framework frontend |
+| Vite | 6.x | Build tool frontend |
+| MySQL/PostgreSQL | 8.x+ | Banco de dados |
+| Docker | Latest | Containerização |
+| phpseclib3 | 3.x | Biblioteca SSH |
+| LDAP | - | Autenticação |
 
 ---
 
