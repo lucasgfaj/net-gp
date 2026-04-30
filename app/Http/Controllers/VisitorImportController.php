@@ -37,9 +37,6 @@ class VisitorImportController extends Controller
             $worksheet = $spreadsheet->getActiveSheet();
             $rows = $worksheet->toArray();
             array_shift($rows);
-            $rows = array_map(function($row) {
-                return array_pad($row, 5, '');
-            }, $rows);
         } else {
             $handle = fopen($file->path(), 'r');
             $header = fgetcsv($handle);
@@ -48,10 +45,17 @@ class VisitorImportController extends Controller
                 return back()->withErrors(['file' => 'Arquivo vazio ou inválido']);
             }
             while (($row = fgetcsv($handle, 1000, ',')) !== false) {
-                $rows[] = array_pad($row, 5, '');
+                $rows[] = $row;
             }
             fclose($handle);
         }
+
+        $rows = array_filter($rows, function($row) {
+            $row = array_map(fn($v) => is_null($v) ? '' : trim($v), $row);
+            return !empty($row[0]) || !empty($row[1]);
+        });
+        $rows = array_values($rows);
+        $totalRows = count($rows);
 
         if (empty($rows)) {
             return back()->withErrors(['file' => 'Nenhum dado encontrado no arquivo']);
@@ -69,10 +73,11 @@ class VisitorImportController extends Controller
             auth()->id(),
             $filename,
             $expiresAt,
-            $typeId
+            $typeId,
+            $totalRows
         );
 
-        return redirect()->route('visitors.index')
-            ->with('success', "Importação iniciada: {$batch->total_rows} visitante(s) serão processados em background. O envio de e-mails pode levar alguns minutos.");
+        return redirect()->route('import-batches.index')
+            ->with('success', "Importação concluída: {$batch->success_count} visitante(s) importado(s) com sucesso, {$batch->error_count} erro(s).");
     }
 }

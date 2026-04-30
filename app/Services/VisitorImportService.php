@@ -20,7 +20,8 @@ class VisitorImportService
         int $createdBy,
         string $filename,
         ?string $expiresAt = null,
-        ?int $typeId = null
+        ?int $typeId = null,
+        ?int $totalRows = null
     ): ImportBatch {
         $this->createdBy = $createdBy;
         $this->defaultExpires = $expiresAt ?? now()->addDays(7)->format('Y-m-d');
@@ -28,7 +29,7 @@ class VisitorImportService
 
         $this->batch = ImportBatch::create([
             'filename' => $filename,
-            'total_rows' => count($rows),
+            'total_rows' => $totalRows ?? count($rows),
             'status' => 'processing',
             'created_by' => $createdBy,
         ]);
@@ -37,7 +38,8 @@ class VisitorImportService
             $line = $index + 2;
 
             $row = array_map(fn($v) => is_null($v) ? '' : trim($v), $row);
-            if (empty(array_filter($row, fn($v) => !empty($v)))) {
+            
+            if (empty($row[0]) && empty($row[1])) {
                 continue;
             }
 

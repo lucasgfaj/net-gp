@@ -9,8 +9,8 @@ import { Form, Head, Link } from '@inertiajs/react';
 import visitorImports from '@/routes/visitors/import/index';
 import visitors from '@/routes/visitors';
 import { type BreadcrumbItem } from '@/types';
-import { FileUp, Download, ArrowLeft, FileSpreadsheet } from 'lucide-react';
-import { useState } from 'react';
+import { FileUp, Download, ArrowLeft, FileSpreadsheet, Upload, FileText } from 'lucide-react';
+import { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 
 interface VisitorImportProps {
@@ -29,6 +29,37 @@ export default function VisitorImport({ types }: VisitorImportProps) {
         date.setDate(date.getDate() + 7);
         return date.toISOString().split('T')[0];
     });
+
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setSelectedFile(file);
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        const file = e.dataTransfer.files?.[0];
+        if (file) {
+            const validTypes = ['.csv', '.xlsx', '.xls'];
+            const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            if (validTypes.includes(ext)) {
+                setSelectedFile(file);
+                if (fileInputRef.current) {
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    fileInputRef.current.files = dt.files;
+                }
+            }
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+    };
 
     const downloadExample = () => {
         const data = [
@@ -86,20 +117,54 @@ export default function VisitorImport({ types }: VisitorImportProps) {
                         >
                             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="file" className="text-sm font-medium">
+                                    <Label className="text-sm font-medium">
                                         Arquivo <span className="text-red-500">*</span>
                                     </Label>
-                                    <Input
-                                        id="file"
-                                        name="file"
+                                    <input
+                                        ref={fileInputRef}
                                         type="file"
+                                        name="file"
                                         accept=".csv,.xlsx,.xls"
-                                        className="cursor-pointer"
+                                        onChange={handleFileChange}
+                                        className="hidden"
                                         required
                                     />
-                                    <p className="text-xs text-muted-foreground">
-                                        Formatos aceitos: CSV, XLSX, XLS
-                                    </p>
+                                    <div
+                                        onClick={() => fileInputRef.current?.click()}
+                                        onDrop={handleDrop}
+                                        onDragOver={handleDragOver}
+                                        className={`
+                                            border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
+                                            ${selectedFile 
+                                                ? 'border-green-500 bg-green-50/50 dark:bg-green-900/20' 
+                                                : 'border-muted-foreground/30 hover:border-primary hover:bg-muted/50'
+                                            }
+                                        `}
+                                    >
+                                        {selectedFile ? (
+                                            <div className="flex items-center justify-center gap-3">
+                                                <FileText className="h-8 w-8 text-green-600" />
+                                                <div className="text-left">
+                                                    <p className="font-medium text-foreground">{selectedFile.name}</p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {(selectedFile.size / 1024).toFixed(1)} KB
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-foreground">
+                                                        Arraste ou clique para selecionar
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        CSV, XLSX ou XLS
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="grid gap-2">

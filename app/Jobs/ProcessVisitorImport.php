@@ -64,8 +64,6 @@ class ProcessVisitorImport implements ShouldQueue
                 ]);
             }
 
-            $this->batch->increment('success_count');
-
             Log::info("Visitante importado com sucesso", [
                 'visitor_id' => $this->visitor->id,
                 'name' => $this->visitor->name,
