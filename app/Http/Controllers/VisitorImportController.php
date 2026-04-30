@@ -7,6 +7,7 @@ use App\Models\VisitorType;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class VisitorImportController extends Controller
 {
@@ -20,7 +21,7 @@ class VisitorImportController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt|max:5120',
+            'file' => 'required|file|mimes:csv,xlsx,xls|max:5120',
             'expires_at' => 'nullable|date',
             'type_id' => 'nullable|exists:visitor_types,id',
         ]);
@@ -28,20 +29,29 @@ class VisitorImportController extends Controller
         $file = $request->file('file');
         $filename = $file->getClientOriginalName();
 
-        $handle = fopen($file->path(), 'r');
-
-        $header = fgetcsv($handle);
-
-        if (!$header) {
-            fclose($handle);
-            return back()->withErrors(['file' => 'Arquivo vazio ou inválido']);
-        }
-
+        $extension = $file->getClientOriginalExtension();
         $rows = [];
-        while (($row = fgetcsv($handle, 1000, ',')) !== false) {
-            $rows[] = $row;
+
+        if (in_array($extension, ['xlsx', 'xls'])) {
+            $spreadsheet = IOFactory::load($file->path());
+            $worksheet = $spreadsheet->getActiveSheet();
+            $rows = $worksheet->toArray();
+            array_shift($rows);
+            $rows = array_map(function($row) {
+                return array_pad($row, 5, '');
+            }, $rows);
+        } else {
+            $handle = fopen($file->path(), 'r');
+            $header = fgetcsv($handle);
+            if (!$header) {
+                fclose($handle);
+                return back()->withErrors(['file' => 'Arquivo vazio ou inválido']);
+            }
+            while (($row = fgetcsv($handle, 1000, ',')) !== false) {
+                $rows[] = array_pad($row, 5, '');
+            }
+            fclose($handle);
         }
-        fclose($handle);
 
         if (empty($rows)) {
             return back()->withErrors(['file' => 'Nenhum dado encontrado no arquivo']);

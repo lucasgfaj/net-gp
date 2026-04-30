@@ -9,8 +9,9 @@ import { Form, Head, Link } from '@inertiajs/react';
 import visitorImports from '@/routes/visitors/import/index';
 import visitors from '@/routes/visitors';
 import { type BreadcrumbItem } from '@/types';
-import { FileUp, Download, ArrowLeft } from 'lucide-react';
+import { FileUp, Download, ArrowLeft, FileSpreadsheet } from 'lucide-react';
 import { useState } from 'react';
+import * as XLSX from 'xlsx';
 
 interface VisitorImportProps {
     types: Array<{ id: number; name: string }>;
@@ -30,17 +31,16 @@ export default function VisitorImport({ types }: VisitorImportProps) {
     });
 
     const downloadExample = () => {
-        const example = `nome,cpf,email,telefone,motivo
-João Silva,12345678901,joao@email.com,41999999999,Evento IEEE
-Maria Santos,98765432100,maria@email.com,41988888899,Palestra UTFPR
-Pedro Costa,45612378901,pedro@email.com,41988888888,Visita Técnica`;
-        const blob = new Blob([example], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'modelo_importacao.csv';
-        a.click();
-        URL.revokeObjectURL(url);
+        const data = [
+            ['nome', 'cpf', 'email', 'telefone', 'motivo'],
+            ['joao silva', '12345678901', 'joao@email.com', '41999999999', 'Evento'],
+            ['maria santos', '98765432100', 'maria@email.com', '41988888899', 'Palestra'],
+            ['pedro costa', '45612378901', 'pedro@email.com', '41988888888', 'Visita'],
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Visitantes');
+        XLSX.writeFile(wb, 'modelo.xlsx');
     };
 
     return (
@@ -59,13 +59,13 @@ Pedro Costa,45612378901,pedro@email.com,41988888888,Visita Técnica`;
                         <div>
                             <h1 className="text-2xl font-bold">Importar Visitantes</h1>
                             <p className="text-sm text-muted-foreground">
-                                Importe visitantes em lote através de arquivo CSV
+                                Importe visitantes em lote através de arquivo CSV ou Excel
                             </p>
                         </div>
                     </div>
                     <Button variant="outline" onClick={downloadExample}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Baixar Modelo CSV
+                        <FileSpreadsheet className="mr-2 h-4 w-4" />
+                        Baixar Modelo XLSX
                     </Button>
                 </div>
 
@@ -87,18 +87,18 @@ Pedro Costa,45612378901,pedro@email.com,41988888888,Visita Técnica`;
                             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                                 <div className="grid gap-2">
                                     <Label htmlFor="file" className="text-sm font-medium">
-                                        Arquivo CSV <span className="text-red-500">*</span>
+                                        Arquivo <span className="text-red-500">*</span>
                                     </Label>
                                     <Input
                                         id="file"
                                         name="file"
                                         type="file"
-                                        accept=".csv,.txt"
+                                        accept=".csv,.xlsx,.xls"
                                         className="cursor-pointer"
                                         required
                                     />
                                     <p className="text-xs text-muted-foreground">
-                                        Aceita arquivos .csv e .txt
+                                        Formatos aceitos: CSV, XLSX, XLS
                                     </p>
                                 </div>
 
@@ -154,7 +154,7 @@ Pedro Costa,45612378901,pedro@email.com,41988888888,Visita Técnica`;
                 {/* Tabela de exemplo */}
                 <Card>
                     <CardHeader className="pb-4">
-                        <CardTitle className="text-lg">Formato do Arquivo CSV</CardTitle>
+                        <CardTitle className="text-lg">Formato do Arquivo</CardTitle>
                         <CardDescription>
                             O arquivo deve conter cabeçalho com os nomes das colunas
                         </CardDescription>

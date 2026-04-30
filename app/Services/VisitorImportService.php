@@ -36,6 +36,11 @@ class VisitorImportService
         foreach ($rows as $index => $row) {
             $line = $index + 2;
 
+            $row = array_map(fn($v) => is_null($v) ? '' : trim($v), $row);
+            if (empty(array_filter($row, fn($v) => !empty($v)))) {
+                continue;
+            }
+
             try {
                 $this->validateRow($row, $line);
                 $visitor = $this->createVisitor($row);
@@ -124,9 +129,7 @@ class VisitorImportService
             return false;
         }
 
-        for ($i = 0; $i < 10; $i++) {
-            $digits[$i] = (int) $cpf[$i];
-        }
+        $digits = array_map('intval', str_split($cpf));
 
         $sum = 0;
         for ($i = 0; $i < 9; $i++) {
@@ -149,14 +152,13 @@ class VisitorImportService
 
     protected function createVisitor(array $row): Visitor
     {
-        $name = trim($row[0]);
-        $cpf = preg_replace('/\D/', '', $row[1]);
-        $email = !empty($row[2]) ? trim($row[2]) : null;
-        $phone = !empty($row[3]) ? trim($row[3]) : null;
+        $name = isset($row[0]) ? trim($row[0]) : '';
+        $cpf = isset($row[1]) ? preg_replace('/\D/', '', $row[1]) : '';
+        $email = isset($row[2]) && !empty(trim($row[2])) ? trim($row[2]) : null;
+        $phone = isset($row[3]) && !empty(trim($row[3])) ? trim($row[3]) : null;
+        $reason = isset($row[4]) && !empty(trim($row[4])) ? trim($row[4]) : null;
 
-        $reason = !empty($row[4]) ? trim($row[4]) : null;
-
-        $expiresAt = !empty($row[5])
+        $expiresAt = isset($row[5]) && !empty($row[5])
             ? Carbon::parse($row[5])->format('Y-m-d')
             : $this->defaultExpires;
 
