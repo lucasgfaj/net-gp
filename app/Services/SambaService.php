@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
+use App\Contracts\SambaInterface;
 use Illuminate\Support\Facades\Log;
 use phpseclib3\Net\SSH2;
 use phpseclib3\Crypt\PublicKeyLoader;
 
-class SambaService
+class SambaService implements SambaInterface
 {
     protected string $host;
     protected string $user;

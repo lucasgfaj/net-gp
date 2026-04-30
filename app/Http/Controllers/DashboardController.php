@@ -52,7 +52,7 @@ class DashboardController extends Controller
             ->values();
 
         $visitorsByMonth = Visitor::selectRaw('
-            DATE_FORMAT(created_at, "%Y-%m") as month,
+            TO_CHAR(created_at, \'YYYY-MM\') as month,
             COUNT(*) as count
         ')
             ->whereBetween('created_at', [

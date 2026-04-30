@@ -2,21 +2,21 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
+use App\Contracts\ActivityLogInterface;
+use App\Contracts\SambaInterface;
 use App\Models\Visitor;
 use App\Models\Voucher;
-use App\Services\SambaService;
-use App\Services\ActivityLogService;
+use Carbon\Carbon;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class DisableExpiredVisitors extends Command
 {
     protected $signature = 'visitors:disable-expired';
     protected $description = 'Remove voucher e usuário Samba de visitantes expirados';
 
-    public function handle(SambaService $sambaService, ActivityLogService $activityLogService)
+    public function handle(SambaInterface $sambaService, ActivityLogInterface $activityLogService)
     {
         $now = Carbon::now();
 

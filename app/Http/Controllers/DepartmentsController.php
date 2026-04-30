@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\ActivityLogInterface;
 use App\Models\Department;
-use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -49,7 +49,7 @@ public function index(Request $request)
         return Inertia::render('departments/create');
     }
 
-    public function store(Request $request, ActivityLogService $activityLogService)
+    public function store(Request $request, ActivityLogInterface $activityLogService)
     {
         $request->validate(
             [
@@ -101,7 +101,7 @@ public function index(Request $request)
     }
 
 
-    public function destroy(Department $department, ActivityLogService $activityLogService)
+    public function destroy(Department $department, ActivityLogInterface $activityLogService)
     {
         if ($department->users()->exists()) {
             return back()->withErrors([

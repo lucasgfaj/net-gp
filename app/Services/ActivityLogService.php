@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
+use App\Contracts\ActivityLogInterface;
 use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Support\Facades\Request;
 
-class ActivityLogService
+class ActivityLogService implements ActivityLogInterface
 {
     public function log(string $action, ?array $data = null): void
     {

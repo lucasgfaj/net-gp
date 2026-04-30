@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\ActivityLogInterface;
 use App\Models\VisitorType;
-use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -46,7 +46,7 @@ class VisitorTypeController extends Controller
         return Inertia::render('visitorTypes/create');
     }
 
-    public function store(Request $request, ActivityLogService $activityLogService)
+    public function store(Request $request, ActivityLogInterface $activityLogService)
     {
         $request->validate([
             'name' => ['required'],
@@ -82,7 +82,7 @@ class VisitorTypeController extends Controller
         return redirect()->route('visitorTypes.index');
     }
 
-    public function destroy(VisitorType $visitorType, ActivityLogService $activityLogService)
+    public function destroy(VisitorType $visitorType, ActivityLogInterface $activityLogService)
     {
         $typeName = $visitorType->name;
         $visitorType->delete();
