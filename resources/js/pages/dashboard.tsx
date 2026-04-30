@@ -4,8 +4,9 @@ import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
-import { usePage } from '@inertiajs/react';
-import { UserPlus, Users, Calendar, Clock, AlertCircle } from 'lucide-react';
+import { usePage, router } from '@inertiajs/react';
+import { UserPlus, Users, Calendar, Clock, AlertCircle, FileSpreadsheet, CheckCircle, XCircle } from 'lucide-react';
+import { useEffect } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -18,12 +19,21 @@ export default function Dashboard() {
     const { props }: any = usePage();
     const {
         stats,
+        importStats,
         visitorsByDepartment,
         visitorsByMonth,
         nextToExpire,
         alreadyExpired,
         recentActivities,
+        recentImports,
     } = props;
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload({ only: ['stats', 'importStats', 'nextToExpire', 'alreadyExpired', 'recentActivities', 'recentImports'] });
+        }, 5000);
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -68,6 +78,40 @@ export default function Dashboard() {
                             <div className="text-2xl font-bold">
                                 {stats.expiredVisitors}
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                                Importações em Lote
+                            </CardTitle>
+                            <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">
+                                {importStats?.totalBatches || 0}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                {importStats?.totalImported || 0} importados
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                                Erros de Importação
+                            </CardTitle>
+                            <XCircle className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-red-600">
+                                {importStats?.totalErrors || 0}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                {importStats?.totalSuccess || 0} com sucesso
+                            </p>
                         </CardContent>
                     </Card>
                 </div>
@@ -227,6 +271,54 @@ export default function Dashboard() {
                             ) : (
                                 <p className="text-sm text-muted-foreground">
                                     Nenhuma atividade recente
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card className="overflow-hidden">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="text-base">
+                                Importações Recentes
+                            </CardTitle>
+                            {/* Botão de ver todas removido temporariamente */}
+                        </CardHeader>
+                        <CardContent>
+                            {recentImports?.length > 0 ? (
+                                <div className="space-y-2">
+                                    {recentImports.map((batch: any) => (
+                                        <div
+                                            key={batch.id}
+                                            className="flex items-center justify-between hover:bg-muted/50 p-2 rounded"
+                                        >
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium">
+                                                    {batch.filename}
+                                                </span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {batch.total} importados • {batch.creator}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {batch.status === 'completed' && (
+                                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                                )}
+                                                {batch.status === 'failed' && (
+                                                    <XCircle className="h-4 w-4 text-red-500" />
+                                                )}
+                                                {batch.status === 'processing' && (
+                                                    <Clock className="h-4 w-4 text-yellow-500" />
+                                                )}
+                                                <span className="text-xs text-muted-foreground">
+                                                    {batch.created_at}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">
+                                    Nenhuma importação realizada
                                 </p>
                             )}
                         </CardContent>

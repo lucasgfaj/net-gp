@@ -15,6 +15,7 @@ import departments from '@/routes/departments';
 import users from '@/routes/users';
 import visitors from '@/routes/visitors';
 import vouchers from '@/routes/vouchers';
+import importBatches from '@/routes/import-batches';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import {
@@ -26,6 +27,7 @@ import {
     Ticket,
     UserCircle,
     Users,
+    FileSpreadsheet,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 import visitorTypes from '@/routes/visitorTypes';
@@ -61,6 +63,11 @@ const mainNavItems: NavItem[] = [
         href: vouchers.index(),
         icon: Ticket,
     },
+    {
+        title: 'Importações',
+        href: importBatches.index(),
+        icon: FileSpreadsheet,
+    },
 ];
 
 const footerNavItems: NavItem[] = [
@@ -82,7 +89,7 @@ export function AppSidebar() {
 
     const filterMainNavItems = mainNavItems.filter((item) => {
         if (role === 'operator') {
-            return !['Departamentos', 'Usuários', 'Tipo de Visitante'].includes(item.title);
+            return !['Departamentos', 'Usuários', 'Tipo de Visitante', 'Importações'].includes(item.title);
         }
         return true;
     });

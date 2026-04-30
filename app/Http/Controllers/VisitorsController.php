@@ -64,6 +64,15 @@ class VisitorsController extends Controller
         ]);
     }
 
+    public function show(Visitor $visitor)
+    {
+        $visitor->load(['type', 'voucher', 'creator.department']);
+
+        return Inertia::render('visitors/show', [
+            'visitor' => $visitor,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

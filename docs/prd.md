@@ -220,6 +220,18 @@ ActivityLogs registra:
 | RN08 | Usuário Samba removido junto |
 | RN09 | Voucher removido da tabela |
 
+### 4.4 Importação em Lote
+
+| Regra | Descrição |
+|-------|-----------|
+| RN10 | Importação processada em background (queue/jobs) |
+| RN11 | CPF validado matematicamente (dígito verificador) |
+| RN12 | CPF único no sistema |
+| RN13 | Email único no sistema |
+| RN14 | Cada visitante do lote cria voucher e usuário no Samba |
+| RN15 | Email enviado individualmente com delay entre envios |
+| RN16 | Erros de importação armazenados com linha e mensagem |
+
 ---
 
 ## 5. Casos de Uso
@@ -337,6 +349,10 @@ Pós-condições: Accessos removidos
 | P04 | Implementar métricas do Dashboard | Dashboard | Alta |
 | P05 | Exibir creator + dept nas listagens | Rastreabilidade | Alta |
 | P06 | Adicionar filtros de expiração | Vouchers | Média |
+| P07 | Importação CSV de visitantes | Importação | Alta |
+| P08 | Validação de CPF matemático | Importação | Alta |
+| P09 | Feedback de erros na importação | Importação | Alta |
+| P10 | Processamento em background | Importação | Alta |
 
 ### 7.2 backlog
 

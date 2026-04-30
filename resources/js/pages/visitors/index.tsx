@@ -13,10 +13,11 @@ import {
 import VisitorsFilters from "@/components/visitors/visitors-filters";
 import AppLayout from "@/layouts/app-layout";
 import visitors from "@/routes/visitors";
+import visitorImports from "@/routes/visitors/import/index";
 import { type BreadcrumbItem } from "@/types";
 import { Head, Link, router, usePage } from "@inertiajs/react";
 import debounce from "lodash.debounce";
-import { Edit, Trash2, SlidersHorizontal } from "lucide-react";
+import { Edit, Trash2, SlidersHorizontal, FileSpreadsheet } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function VisitorsIndex() {
@@ -117,13 +118,24 @@ export default function VisitorsIndex() {
                         </Button>
                     </div>
 
-                    {/* CRIAR */}
-                    <Link
-                        href={visitors.create.get().url}
-                        className="mt-2 w-full sm:mt-0 sm:w-auto"
-                    >
-                        <Button className="w-full sm:w-auto">Criar Visitante</Button>
-                    </Link>
+                    {/* CRIAR + IMPORTAR */}
+                    <div className="flex gap-2 mt-2 sm:mt-0">
+                        <Link
+                            href={visitorImports.index.url()}
+                            className="w-full sm:w-auto"
+                        >
+                            <Button variant="outline" className="w-full sm:w-auto">
+                                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                Importar CSV
+                            </Button>
+                        </Link>
+                        <Link
+                            href={visitors.create.get().url}
+                            className="w-full sm:w-auto"
+                        >
+                            <Button className="w-full sm:w-auto">Criar Visitante</Button>
+                        </Link>
+                    </div>
                 </div>
 
                 {/* FILTROS EXPANDIDOS */}

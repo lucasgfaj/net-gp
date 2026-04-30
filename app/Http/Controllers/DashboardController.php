@@ -6,6 +6,7 @@ use App\Models\Visitor;
 use App\Models\Department;
 use App\Models\ActivityLog;
 use App\Models\Voucher;
+use App\Models\ImportBatch;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
@@ -21,6 +22,12 @@ class DashboardController extends Controller
         $queryBase = Visitor::query()
             ->whereHas('voucher');
 
+        if ($user->department_id !== 1) {
+            $queryBase->whereHas('creator', fn ($q) =>
+                $q->where('department_id', $user->department_id)
+            );
+        }
+
         $totalVisitors = (clone $queryBase)->count();
 
         $totalThisMonth = (clone $queryBase)
@@ -34,7 +41,12 @@ class DashboardController extends Controller
             ->where('expires_at', '<=', $now)
             ->count();
 
-        $visitorsByDepartment = Department::all()
+        $departments = Department::all();
+        if ($user->department_id !== 1) {
+            $departments = $departments->where('id', $user->department_id);
+        }
+
+        $visitorsByDepartment = $departments
             ->map(function ($department) use ($queryBase) {
                 $count = (clone $queryBase)
                     ->whereHas('creator', function ($q) use ($department) {
@@ -63,23 +75,39 @@ class DashboardController extends Controller
             ->orderBy('month')
             ->get();
 
-        $nextToExpire = Voucher::with([
+        $nextToExpireQuery = Voucher::with([
             'visitor.type',
             'visitor.creator.department',
         ])
             ->whereNotNull('expires_at')
             ->where('expires_at', '>', $now)
-            ->where('expires_at', '<=', $now->copy()->addDays(7))
+            ->where('expires_at', '<=', $now->copy()->addDays(7));
+
+        if ($user->department_id !== 1) {
+            $nextToExpireQuery->whereHas('visitor.creator', fn ($q) =>
+                $q->where('department_id', $user->department_id)
+            );
+        }
+
+        $nextToExpire = $nextToExpireQuery
             ->orderBy('expires_at')
             ->limit(10)
             ->get();
 
-        $alreadyExpired = Visitor::with([
+        $alreadyExpiredQuery = Visitor::with([
             'type',
             'creator.department',
         ])
             ->where('expires_at', '<=', $now)
-            ->whereHas('voucher')
+            ->whereHas('voucher');
+
+        if ($user->department_id !== 1) {
+            $alreadyExpiredQuery->whereHas('creator', fn ($q) =>
+                $q->where('department_id', $user->department_id)
+            );
+        }
+
+        $alreadyExpired = $alreadyExpiredQuery
             ->orderBy('expires_at', 'desc')
             ->limit(10)
             ->get();
@@ -131,17 +159,58 @@ class DashboardController extends Controller
                 ];
             });
 
+        $importStatsQuery = ImportBatch::query();
+        
+        if ($user->department_id !== 1) {
+            $importStatsQuery->where('created_by', $user->id);
+        }
+
+        $importStats = $importStatsQuery->selectRaw('
+            COUNT(*) as total_batches,
+            SUM(total_rows) as total_imported,
+            SUM(success_count) as total_success,
+            SUM(error_count) as total_errors
+        ')->first();
+
+        $recentImportsQuery = ImportBatch::with('creator:id,name');
+
+        if ($user->department_id !== 1) {
+            $recentImportsQuery->where('created_by', $user->id);
+        }
+
+        $recentImports = $recentImportsQuery
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(fn ($batch) => [
+                'id' => $batch->id,
+                'filename' => $batch->filename,
+                'total' => $batch->total_rows,
+                'success' => $batch->success_count,
+                'errors' => $batch->error_count,
+                'status' => $batch->status,
+                'created_at' => $batch->created_at->format('d/m H:i'),
+                'creator' => $batch->creator?->name,
+            ]);
+
         return Inertia::render('dashboard', [
             'stats' => [
                 'totalVisitors' => $totalVisitors,
                 'totalThisMonth' => $totalThisMonth,
                 'expiredVisitors' => $expiredVisitors,
             ],
+            'importStats' => [
+                'totalBatches' => $importStats->total_batches ?? 0,
+                'totalImported' => $importStats->total_imported ?? 0,
+                'totalSuccess' => $importStats->total_success ?? 0,
+                'totalErrors' => $importStats->total_errors ?? 0,
+            ],
             'visitorsByDepartment' => $visitorsByDepartment,
             'visitorsByMonth' => $visitorsByMonth,
             'nextToExpire' => $nextToExpire,
             'alreadyExpired' => $alreadyExpired,
             'recentActivities' => $recentActivities,
+            'recentImports' => $recentImports,
         ]);
     }
 }

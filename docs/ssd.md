@@ -103,6 +103,9 @@ erDiagram
         bigint created_by FK
         boolean enabled "default: true"
         timestamp disabled_at "nullable"
+        bigint import_batch_id FK "nullable: importações em lote"
+        boolean email_sent "default: false"
+        timestamp email_sent_at "nullable"
         timestamp timestamps
     }
 
@@ -123,8 +126,28 @@ erDiagram
     activity_logs {
         bigint id PK
         bigint user_id FK
-        string action "PENDENTE: popular nos controllers"
+        string action
         json data "nullable"
+        timestamp timestamps
+    }
+
+    import_batches {
+        bigint id PK
+        string filename
+        int total_rows
+        int success_count "default: 0"
+        int error_count "default: 0"
+        string status "pending/processing/completed/failed/partial/deleted"
+        bigint created_by FK
+        timestamp timestamps
+    }
+
+    import_errors {
+        bigint id PK
+        bigint import_batch_id FK
+        int line_number
+        text error_message
+        json row_data "nullable"
         timestamp timestamps
     }
 ```
@@ -162,6 +185,18 @@ erDiagram
 | | user_id | bigint | FK → users |
 | | action | string | Ação realizada |
 | | data | json | Dados antigos/novos |
+| `import_batches` | id | bigint | PK |
+| | filename | string | Nome do arquivo CSV |
+| | total_rows | int | Total de linhas |
+| | success_count | int | Sucessos |
+| | error_count | int | Erros |
+| | status | string | pending/processing/completed/failed/partial/deleted |
+| | created_by | bigint | FK → users |
+| `import_errors` | id | bigint | PK |
+| | import_batch_id | bigint | FK → import_batches |
+| | line_number | int | Linha do erro |
+| | error_message | text | Mensagem de erro |
+| | row_data | json | Dados da linha |
 
 ---
 
@@ -311,6 +346,10 @@ Executa **diariamente às 00:00**:
 | 5 | Enviar email com link de redefinição | Média | Pendente |
 | 6 | Notificações de vouchers prestes a expirar | Média | Pendente |
 | 7 | Relatórios (PDF/Excel) | Baixa | Pendente |
+| 8 | Importação de visitantes via CSV | Alta | ✓ Concluído |
+| 9 | Validação de CPF matemático na importação | Alta | ✓ Concluído |
+| 10 | Feedback de erros na importação | Alta | ✓ Concluído |
+| 11 | Processamento em background (queue) | Alta | ✓ Concluído |
 
 ### 9.2 Melhorias Futuras
 

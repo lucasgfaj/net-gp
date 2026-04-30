@@ -23,6 +23,9 @@ class Visitor extends Model
         'created_by',
         'disabled_at',
         'enabled',
+        'import_batch_id',
+        'email_sent',
+        'email_sent_at',
     ];
 
     protected $casts = [
@@ -30,6 +33,8 @@ class Visitor extends Model
         'created_at' => 'datetime',
         'disabled_at' => 'datetime',
         'enabled' => 'boolean',
+        'email_sent' => 'boolean',
+        'email_sent_at' => 'datetime',
     ];
 
     /* ================= RELATIONSHIPS ================= */
@@ -52,6 +57,11 @@ class Visitor extends Model
     public function voucher()
     {
         return $this->hasOne(Voucher::class, 'visitor_id');
+    }
+
+    public function importBatch()
+    {
+        return $this->belongsTo(ImportBatch::class, 'import_batch_id');
     }
 
     /* ================= SCOPES ================= */
