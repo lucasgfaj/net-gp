@@ -7,7 +7,8 @@ import AppLayout from '@/layouts/app-layout';
 import importBatches from '@/routes/import-batches';
 import { type BreadcrumbItem } from '@/types';
 import { Head, usePage, router, Link } from '@inertiajs/react';
-import { Trash2, Mail, MailOpen, ArrowLeft, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { Trash2, Mail, MailOpen, ArrowLeft, FileSpreadsheet, AlertCircle, RefreshCw } from 'lucide-react';
+import { useEffect } from 'react';
 
 interface Visitor {
     id: number;
@@ -59,7 +60,7 @@ interface Props {
 }
 
 export default function ImportBatchShow() {
-    const { props } = usePage<Props>();
+    const { props, reload } = usePage<Props>();
     const { batch, visitors, errors } = props;
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -67,6 +68,15 @@ export default function ImportBatchShow() {
         { title: 'Importações', href: importBatches.index.url() },
         { title: batch.filename, href: `/import-batches/${batch.id}` },
     ];
+
+    useEffect(() => {
+        if (batch.status === 'processing' || batch.status === 'partial') {
+            const interval = setInterval(() => {
+                reload();
+            }, 5000);
+            return () => clearInterval(interval);
+        }
+    }, [batch.status, reload]);
 
     const handleDeleteBatch = () => {
         if (confirm('Tem certeza que deseja excluir este lote? Todos os visitantes serão removidos.')) {
@@ -91,6 +101,9 @@ return (
                             <h1 className="text-xl font-bold flex items-center gap-2">
                                 <FileSpreadsheet className="h-5 w-5" />
                                 {batch.filename}
+                                {(batch.status === 'processing' || batch.status === 'partial') && (
+                                    <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+                                )}
                             </h1>
                             <p className="text-sm text-muted-foreground">
                                 {new Date(batch.created_at).toLocaleDateString('pt-BR')} • {batch.creator?.name}

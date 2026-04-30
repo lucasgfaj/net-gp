@@ -26,6 +26,19 @@ services:
     depends_on:
       - db
 
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /var/www
+    command: php artisan queue:work --daemon
+    volumes:
+      - .:/var/www
+    networks:
+      - app-network
+    depends_on:
+      - db
+
   db:
     image: postgres:16
     env_file:
