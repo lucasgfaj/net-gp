@@ -357,8 +357,7 @@ Pós-condições: Accessos removidos
 | P10 | Processamento em background | Importação | Alta |
 | P11 | Auto-refresh em listagens | UI | Alta |
 | P12 | Queue worker Docker | Infraestrutura | Alta |
-
-### 7.2 backlog
+| P13 | Bug: success_count duplicado na importação | Importação | Alta |
 
 | # | Melhoria | Módulo |
 |---|----------|--------|
