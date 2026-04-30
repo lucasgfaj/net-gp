@@ -59,7 +59,6 @@ export default function Login({
                                     autoFocus
                                     tabIndex={1}
                                     autoComplete="username"
-                                    pattern="^[a-z]+(\.[a-z]+)?$"
                                 />
                                 <InputError message={errors.email || flashError} />
                             </div>

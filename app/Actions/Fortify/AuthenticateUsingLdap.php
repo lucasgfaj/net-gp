@@ -23,7 +23,9 @@ class AuthenticateUsingLdap
         $department = $ldap->mapDepartmentByGroups($data['groups']);
 
         if (!$department) {
-            session()->flash('error', 'Seu departamento não tem acesso a este sistema. Favor verificar com a COGETI.');
+            $groupsList = implode(', ', $data['groups']);
+            $message = 'Seu grupo (' . $groupsList . ') não tem acesso a este sistema. Favor verificar com a COGETI.';
+            session()->flash('error', $message);
             return null;
         }
 
