@@ -16,20 +16,17 @@ class AuthenticateUsingLdap
             $request->password
         );
 
-        // Falhou no AD → bloqueia login
         if (!$data) {
             return null;
         }
 
-        // Descobre o departamento pelo grupo do AD
         $department = $ldap->mapDepartmentByGroups($data['groups']);
 
-        // Usuário não pertence a nenhum grupo permitido
         if (!$department) {
+            session()->flash('error', 'Seu departamento não tem acesso a este sistema. Favor verificar com a COGETI.');
             return null;
         }
 
-        // Descobre o papel (admin/operator) pelo grupo
         $role = $ldap->mapRoleByGroups($data['groups']);
 
         return User::updateOrCreate(
