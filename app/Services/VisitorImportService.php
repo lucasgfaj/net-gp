@@ -38,10 +38,6 @@ class VisitorImportService
             $line = $index + 2;
 
             $row = array_map(fn($v) => is_null($v) ? '' : trim($v), $row);
-            
-            if (empty($row[0]) && empty($row[1])) {
-                continue;
-            }
 
             try {
                 $this->validateRow($row, $line);

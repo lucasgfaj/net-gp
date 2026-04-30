@@ -51,6 +51,13 @@ export default function UsersIndex() {
         if (typing) liveSearch(search);
     }, [search]);
 
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload({ only: ['users'] });
+        }, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
     const handleSort = (column: string) => {
         const newDirection =
             sort === column && direction === 'asc' ? 'desc' : 'asc';

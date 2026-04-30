@@ -231,6 +231,8 @@ ActivityLogs registra:
 | RN14 | Cada visitante do lote cria voucher e usuário no Samba |
 | RN15 | Email enviado individualmente com delay entre envios |
 | RN16 | Erros de importação armazenados com linha e mensagem |
+| RN17 | Linhas vazias são ignoradas na importação |
+| RN18 | total_rows considera apenas linhas válidas |
 
 ---
 
@@ -349,10 +351,12 @@ Pós-condições: Accessos removidos
 | P04 | Implementar métricas do Dashboard | Dashboard | Alta |
 | P05 | Exibir creator + dept nas listagens | Rastreabilidade | Alta |
 | P06 | Adicionar filtros de expiração | Vouchers | Média |
-| P07 | Importação CSV de visitantes | Importação | Alta |
+| P07 | Importação CSV/XLSX de visitantes | Importação | Alta |
 | P08 | Validação de CPF matemático | Importação | Alta |
 | P09 | Feedback de erros na importação | Importação | Alta |
 | P10 | Processamento em background | Importação | Alta |
+| P11 | Auto-refresh em listagens | UI | Alta |
+| P12 | Queue worker Docker | Infraestrutura | Alta |
 
 ### 7.2 backlog
 

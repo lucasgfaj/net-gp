@@ -45,6 +45,13 @@ export default function VisitorTypesIndex() {
         if (typing) liveSearch(search);
     }, [search]);
 
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload({ only: ['visitorTypes'] });
+        }, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
     const handleSort = (column: string) => {
         const newDirection =
             sort === column && direction === 'asc' ? 'desc' : 'asc';

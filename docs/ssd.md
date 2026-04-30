@@ -18,6 +18,7 @@ Sistema de Gerenciamento de Visitantes com vouchers temporários para acesso à 
 | MySQL/PostgreSQL | 8.x+ | Banco de dados |
 | Docker | Latest | Containerização |
 | phpseclib3 | 3.x | Biblioteca SSH |
+| PhpSpreadsheet | 2.x | Leitura XLSX/XLS |
 | LDAP | - | Autenticação |
 
 ---
@@ -302,6 +303,11 @@ Executa **diariamente às 00:00**:
 | DELETE | /visitors/{visitor} | VisitorsController | visitors.destroy |
 | POST | /visitors/{visitor}/generate-password | VisitorsController | visitors.generate-password |
 | POST | /visitors/{visitor}/resend-password | VisitorsController | visitors.resend-password |
+| GET | /visitors/import | VisitorImportController | visitors.import.index |
+| POST | /visitors/import | VisitorImportController | visitors.import.store |
+| GET | /import-batches | ImportBatchController | importBatches.index |
+| GET | /import-batches/{batch} | ImportBatchController | importBatches.show |
+| DELETE | /import-batches/{batch} | ImportBatchController | importBatches.destroy |
 | GET | /vouchers | VouchersController | vouchers.index |
 
 ### 7.2 Middlewares
@@ -350,6 +356,9 @@ Executa **diariamente às 00:00**:
 | 9 | Validação de CPF matemático na importação | Alta | ✓ Concluído |
 | 10 | Feedback de erros na importação | Alta | ✓ Concluído |
 | 11 | Processamento em background (queue) | Alta | ✓ Concluído |
+| 12 | Suporte a XLSX/XLS na importação | Alta | ✓ Concluído |
+| 13 | Auto-refresh em páginas de listagem | Alta | ✓ Concluído |
+| 14 | Queue worker como serviço Docker | Alta | ✓ Concluído |
 
 ### 9.2 Melhorias Futuras
 
