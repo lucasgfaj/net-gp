@@ -173,8 +173,6 @@ class VisitorImportService
             'import_batch_id' => $this->batch->id,
         ]);
 
-        $this->batch->increment('success_count');
-
         return $visitor;
     }
 

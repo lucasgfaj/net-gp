@@ -51,6 +51,8 @@ class ProcessVisitorImport implements ShouldQueue
                 return;
             }
 
+            $this->batch->increment('success_count');
+
             if ($this->visitor->email) {
                 $this->visitor->notify(new VisitorLogin(
                     email: $login,
