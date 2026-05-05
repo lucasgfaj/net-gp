@@ -119,31 +119,31 @@ class DashboardController extends Controller
             ->map(function ($log) {
                 switch ($log->action) {
                     case 'visitor_created':
-                        $description = "criou visitante " . ($log->data['visitor_name'] ?? '');
+                        $description = "Novo visitante: " . ($log->data['visitor_name'] ?? '');
                         break;
                     case 'visitor_updated':
-                        $description = "atualizou visitante " . ($log->data['visitor_name'] ?? '');
+                        $description = "Atualizou: " . ($log->data['visitor_name'] ?? '');
                         break;
                     case 'visitor_deleted':
-                        $description = "removeu visitante " . ($log->data['visitor_name'] ?? '');
+                        $description = "Removeu: " . ($log->data['visitor_name'] ?? '');
                         break;
                     case 'visitor_password_generated':
-                        $description = "gerou nova senha para " . ($log->data['visitor_name'] ?? '');
+                        $description = "Nova senha: " . ($log->data['visitor_name'] ?? '');
                         break;
                     case 'visitor_expired':
-                        $description = "visitante expirou (login: " . ($log->data['login'] ?? '') . ")";
+                        $description = "Expirou (login: " . ($log->data['login'] ?? '') . ")";
                         break;
                     case 'department_created':
-                        $description = "criou department " . ($log->data['department_name'] ?? '');
+                        $description = "Novo depto: " . ($log->data['department_name'] ?? '');
                         break;
                     case 'department_deleted':
-                        $description = "removeu department " . ($log->data['department_name'] ?? '');
+                        $description = "Removeu dept: " . ($log->data['department_name'] ?? '');
                         break;
                     case 'visitor_type_created':
-                        $description = "criou tipo " . ($log->data['type_name'] ?? '');
+                        $description = "Novo tipo: " . ($log->data['type_name'] ?? '');
                         break;
                     case 'visitor_type_deleted':
-                        $description = "removeu tipo " . ($log->data['type_name'] ?? '');
+                        $description = "Removeu tipo: " . ($log->data['type_name'] ?? '');
                         break;
                     default:
                         $description = $log->action;

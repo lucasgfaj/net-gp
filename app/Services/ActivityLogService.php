@@ -17,6 +17,11 @@ class ActivityLogService implements ActivityLogInterface
             return;
         }
 
+        $this->logWithUser($action, $data, $user);
+    }
+
+    protected function logWithUser(string $action, ?array $data, User $user): void
+    {
         ActivityLog::create([
             'user_id' => $user->id,
             'action' => $action,
@@ -31,38 +36,50 @@ class ActivityLogService implements ActivityLogInterface
         ]);
     }
 
-    public function logVisitorCreated(int $visitorId, string $visitorName): void
+    public function logVisitorCreated(int $visitorId, string $visitorName, int $userId): void
     {
-        $this->log('visitor_created', [
-            'visitor_id' => $visitorId,
-            'visitor_name' => $visitorName,
-        ]);
+        $user = User::find($userId);
+        if ($user) {
+            $this->logWithUser('visitor_created', [
+                'visitor_id' => $visitorId,
+                'visitor_name' => $visitorName,
+            ], $user);
+        }
     }
 
-    public function logVisitorUpdated(int $visitorId, string $visitorName, array $old = [], array $new = []): void
+    public function logVisitorUpdated(int $visitorId, string $visitorName, array $old = [], array $new = [], int $userId): void
     {
-        $this->log('visitor_updated', [
-            'visitor_id' => $visitorId,
-            'visitor_name' => $visitorName,
-            'old' => $old,
-            'new' => $new,
-        ]);
+        $user = User::find($userId);
+        if ($user) {
+            $this->logWithUser('visitor_updated', [
+                'visitor_id' => $visitorId,
+                'visitor_name' => $visitorName,
+                'old' => $old,
+                'new' => $new,
+            ], $user);
+        }
     }
 
-    public function logVisitorDeleted(int $visitorId, string $visitorName): void
+    public function logVisitorDeleted(int $visitorId, string $visitorName, int $userId): void
     {
-        $this->log('visitor_deleted', [
-            'visitor_id' => $visitorId,
-            'visitor_name' => $visitorName,
-        ]);
+        $user = User::find($userId);
+        if ($user) {
+            $this->logWithUser('visitor_deleted', [
+                'visitor_id' => $visitorId,
+                'visitor_name' => $visitorName,
+            ], $user);
+        }
     }
 
-    public function logPasswordGenerated(int $visitorId, string $visitorName): void
+    public function logPasswordGenerated(int $visitorId, string $visitorName, int $userId): void
     {
-        $this->log('visitor_password_generated', [
-            'visitor_id' => $visitorId,
-            'visitor_name' => $visitorName,
-        ]);
+        $user = User::find($userId);
+        if ($user) {
+            $this->logWithUser('visitor_password_generated', [
+                'visitor_id' => $visitorId,
+                'visitor_name' => $visitorName,
+            ], $user);
+        }
     }
 
     public function logVisitorExpired(int $visitorId, string $login): void
@@ -78,35 +95,47 @@ class ActivityLogService implements ActivityLogInterface
         $this->log('user_login');
     }
 
-    public function logDepartmentCreated(int $departmentId, string $departmentName): void
+    public function logDepartmentCreated(int $departmentId, string $departmentName, int $userId): void
     {
-        $this->log('department_created', [
-            'department_id' => $departmentId,
-            'department_name' => $departmentName,
-        ]);
+        $user = User::find($userId);
+        if ($user) {
+            $this->logWithUser('department_created', [
+                'department_id' => $departmentId,
+                'department_name' => $departmentName,
+            ], $user);
+        }
     }
 
-    public function logDepartmentDeleted(int $departmentId, string $departmentName): void
+    public function logDepartmentDeleted(int $departmentId, string $departmentName, int $userId): void
     {
-        $this->log('department_deleted', [
-            'department_id' => $departmentId,
-            'department_name' => $departmentName,
-        ]);
+        $user = User::find($userId);
+        if ($user) {
+            $this->logWithUser('department_deleted', [
+                'department_id' => $departmentId,
+                'department_name' => $departmentName,
+            ], $user);
+        }
     }
 
-    public function logVisitorTypeCreated(int $typeId, string $typeName): void
+    public function logVisitorTypeCreated(int $typeId, string $typeName, int $userId): void
     {
-        $this->log('visitor_type_created', [
-            'type_id' => $typeId,
-            'type_name' => $typeName,
-        ]);
+        $user = User::find($userId);
+        if ($user) {
+            $this->logWithUser('visitor_type_created', [
+                'type_id' => $typeId,
+                'type_name' => $typeName,
+            ], $user);
+        }
     }
 
-    public function logVisitorTypeDeleted(int $typeId, string $typeName): void
+    public function logVisitorTypeDeleted(int $typeId, string $typeName, int $userId): void
     {
-        $this->log('visitor_type_deleted', [
-            'type_id' => $typeId,
-            'type_name' => $typeName,
-        ]);
+        $user = User::find($userId);
+        if ($user) {
+            $this->logWithUser('visitor_type_deleted', [
+                'type_id' => $typeId,
+                'type_name' => $typeName,
+            ], $user);
+        }
     }
 }

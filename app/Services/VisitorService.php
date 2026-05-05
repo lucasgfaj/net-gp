@@ -59,7 +59,7 @@ class VisitorService implements VisitorInterface
                 throw VisitorException::sambaConnectionError($error?->message() ?? $result['error'] ?? 'Erro ao criar usuário no Samba');
             }
 
-            $this->activityLogService->logVisitorCreated($visitor->id, $visitor->name);
+            $this->activityLogService->logVisitorCreated($visitor->id, $visitor->name, $visitor->created_by);
 
             if ($visitor->email) {
                 $visitor->notify(new VisitorLogin(
@@ -73,8 +73,10 @@ class VisitorService implements VisitorInterface
         });
     }
 
-    public function update(Visitor $visitor, array $data): Visitor
+    public function update(Visitor $visitor, array $data, ?int $userId = null): Visitor
     {
+        $userId = $userId ?? $visitor->created_by;
+        
         $oldCpf = preg_replace('/\D/', '', $visitor->cpf);
 
         $visitor->update([
@@ -112,12 +114,12 @@ class VisitorService implements VisitorInterface
         $voucher->expires_at = $visitor->expires_at;
         $voucher->save();
 
-        $this->activityLogService->logVisitorUpdated($visitor->id, $visitor->name);
+        $this->activityLogService->logVisitorUpdated($visitor->id, $visitor->name, [], [], $visitor->created_by);
 
         return $visitor->refresh();
     }
 
-    public function delete(Visitor $visitor): void
+    public function delete(Visitor $visitor, int $userId): void
     {
         $login = preg_replace('/\D/', '', $visitor->cpf);
 
@@ -138,13 +140,15 @@ class VisitorService implements VisitorInterface
 
         Voucher::where('visitor_id', $visitor->id)->delete();
 
-        $this->activityLogService->logVisitorDeleted($visitor->id, $visitor->name);
+        $this->activityLogService->logVisitorDeleted($visitor->id, $visitor->name, $userId);
 
         $visitor->delete();
     }
 
-    public function generatePassword(Visitor $visitor): array
+    public function generatePassword(Visitor $visitor, ?int $userId = null): array
     {
+        $userId = $userId ?? $visitor->created_by;
+        
         $visitor->refresh();
 
         $login = preg_replace('/\D/', '', $visitor->cpf);
@@ -188,7 +192,7 @@ class VisitorService implements VisitorInterface
             ));
         }
 
-        $this->activityLogService->logPasswordGenerated($visitor->id, $visitor->name);
+        $this->activityLogService->logPasswordGenerated($visitor->id, $visitor->name, $visitor->created_by);
 
         return ['success' => true, 'visitor' => $visitor];
     }

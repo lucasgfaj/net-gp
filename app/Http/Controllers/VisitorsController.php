@@ -234,7 +234,7 @@ class VisitorsController extends Controller
         $name = $visitor->name;
 
         try {
-            $this->visitorService->delete($visitor);
+            $this->visitorService->delete($visitor, auth()->id());
         } catch (\Throwable $e) {
             return back()->with('error', 'Erro ao remover visitante: ' . $e->getMessage());
         }

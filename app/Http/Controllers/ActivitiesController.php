@@ -24,18 +24,18 @@ class ActivitiesController extends Controller
         return $labels[$action] ?? $action;
     }
 
-    private function getActionDescription(string $action, array $data): string
+private function getActionDescription(string $action, array $data): string
     {
         return match ($action) {
-            'visitor_created' => 'criou visitante ' . ($data['visitor_name'] ?? ''),
-            'visitor_updated' => 'atualizou visitante ' . ($data['visitor_name'] ?? ''),
-            'visitor_deleted' => 'removeu visitante ' . ($data['visitor_name'] ?? ''),
-            'visitor_password_generated' => 'gerou nova senha para ' . ($data['visitor_name'] ?? ''),
-            'visitor_expired' => 'visitante expirou (login: ' . ($data['login'] ?? '') . ')',
-            'department_created' => 'criou departamento ' . ($data['department_name'] ?? ''),
-            'department_deleted' => 'removeu departamento ' . ($data['department_name'] ?? ''),
-            'visitor_type_created' => 'criou tipo ' . ($data['type_name'] ?? ''),
-            'visitor_type_deleted' => 'removeu tipo ' . ($data['type_name'] ?? ''),
+            'visitor_created' => 'Novo visitante criado: ' . ($data['visitor_name'] ?? ''),
+            'visitor_updated' => 'Dados atualizados de: ' . ($data['visitor_name'] ?? ''),
+            'visitor_deleted' => 'Visitante removido do sistema: ' . ($data['visitor_name'] ?? ''),
+            'visitor_password_generated' => 'Senha redefinida para: ' . ($data['visitor_name'] ?? ''),
+            'visitor_expired' => 'Acesso expirou (login: ' . ($data['login'] ?? '') . ')',
+            'department_created' => 'Departamento criado: ' . ($data['department_name'] ?? ''),
+            'department_deleted' => 'Departamento removido: ' . ($data['department_name'] ?? ''),
+            'visitor_type_created' => 'Tipo de visitante criado: ' . ($data['type_name'] ?? ''),
+            'visitor_type_deleted' => 'Tipo de visitante removido: ' . ($data['type_name'] ?? ''),
             default => $action,
         };
     }
