@@ -51,7 +51,7 @@ export default function VouchersIndex() {
     useEffect(() => {
         const interval = setInterval(() => {
             router.reload({ only: ['vouchers'] });
-        }, 5000);
+        }, 1000);
         return () => clearInterval(interval);
     }, []);
 
@@ -213,7 +213,7 @@ export default function VouchersIndex() {
                 </div>
 
                 {/* PAGINAÇÃO */}
-                {paginated.total > paginated.per_page && (
+                {paginated && paginated.total > paginated.per_page && (
                     <Pagination links={paginated.links} />
                 )}
             </div>

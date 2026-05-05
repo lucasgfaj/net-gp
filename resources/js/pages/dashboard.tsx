@@ -31,7 +31,7 @@ export default function Dashboard() {
     useEffect(() => {
         const interval = setInterval(() => {
             router.reload({ only: ['stats', 'importStats', 'nextToExpire', 'alreadyExpired', 'recentActivities', 'recentImports'] });
-        }, 5000);
+        }, 1000);
         return () => clearInterval(interval);
     }, []);
 

@@ -77,11 +77,29 @@ class SambaService implements SambaInterface
 
     public function createSambaUser(string $username, string $password): array
     {
+        if ($this->userExists($username)) {
+            return [
+                'success' => false,
+                'exit_code' => 255,
+                'error' => 'User already exists in SAMBA',
+            ];
+        }
+
         return $this->execute(sprintf(
             'sudo /usr/bin/samba-tool user create %s %s',
             escapeshellarg($username),
             escapeshellarg($password)
         ));
+    }
+
+    public function userExists(string $username): bool
+    {
+        $result = $this->execute(sprintf(
+            'sudo /usr/bin/samba-tool user list | grep -w %s',
+            escapeshellarg($username)
+        ));
+
+        return $result['success'] && !empty(trim($result['output']));
     }
 
     public function updateSambaUserPassword(string $username, string $newPassword): array

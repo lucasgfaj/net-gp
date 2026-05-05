@@ -9,6 +9,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useState } from "react"
 
 interface ConfirmProps {
   trigger: React.ReactNode;
@@ -23,8 +24,15 @@ export function ConfirmDialog({
   description = "Essa ação não poderá ser desfeita.",
   onConfirm,
 }: ConfirmProps) {
+  const [open, setOpen] = useState(false)
+
+  const handleConfirm = () => {
+    setOpen(false)
+    onConfirm()
+  }
+
   return (
-    <AlertDialog>
+    <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
         {trigger}
       </AlertDialogTrigger>
@@ -36,8 +44,8 @@ export function ConfirmDialog({
         </AlertDialogHeader>
 
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>
+          <AlertDialogCancel onClick={() => setOpen(false)}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirm}>
             Confirmar
           </AlertDialogAction>
         </AlertDialogFooter>

@@ -73,7 +73,7 @@ export default function ImportBatchShow() {
         if (batch.status === 'processing' || batch.status === 'partial') {
             const interval = setInterval(() => {
                 reload();
-            }, 5000);
+            }, 1000);
             return () => clearInterval(interval);
         }
     }, [batch.status, reload]);

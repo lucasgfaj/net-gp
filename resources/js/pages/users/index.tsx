@@ -54,7 +54,7 @@ export default function UsersIndex() {
     useEffect(() => {
         const interval = setInterval(() => {
             router.reload({ only: ['users'] });
-        }, 5000);
+        }, 1000);
         return () => clearInterval(interval);
     }, []);
 
@@ -233,7 +233,7 @@ export default function UsersIndex() {
                 </div>
 
                 {/* PAGINAÇÃO */}
-                {paginated.total > paginated.per_page && (
+                {paginated && paginated.total > paginated.per_page && (
                     <Pagination links={paginated.links} />
                 )}
             </div>

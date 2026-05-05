@@ -48,7 +48,7 @@ export default function DepartmentsIndex() {
     useEffect(() => {
         const interval = setInterval(() => {
             router.reload({ only: ['departments'] });
-        }, 5000);
+        }, 1000);
         return () => clearInterval(interval);
     }, []);
 
@@ -217,7 +217,7 @@ export default function DepartmentsIndex() {
                     </Table>
                 </div>
 
-                {paginated.total > paginated.per_page && (
+                {paginated && paginated.total > paginated.per_page && (
                     <Pagination links={paginated.links} />
                 )}
             </div>

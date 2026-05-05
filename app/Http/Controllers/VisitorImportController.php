@@ -78,6 +78,6 @@ class VisitorImportController extends Controller
         );
 
         return redirect()->route('import-batches.index')
-            ->with('success', "Importação concluída: {$batch->success_count} visitante(s) importado(s) com sucesso, {$batch->error_count} erro(s).");
+            ->with('success', "Importação concluída: {$batch->success_count} visitante(s) importado(s) com sucesso. Login e senha enviados por email, {$batch->error_count} erro(s).");
     }
 }

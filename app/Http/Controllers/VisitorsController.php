@@ -8,6 +8,8 @@ use App\Models\VisitorType;
 use App\Models\Department;
 use App\Rules\CpfRule;
 use App\Services\VisitorService;
+use App\Exceptions\VisitorException;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -76,9 +78,26 @@ class VisitorsController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'min:3', 'max:255'],
+            'name' => [
+                'required',
+                'string',
+                'min:2',
+                'max:255',
+                function ($attribute, $value, $fail) {
+                    $name = trim($value);
+                    if (preg_match('/[0-9]/', $name)) {
+                        $fail('Nome não pode conter números');
+                    }
+                    if (preg_match('/(.)\1{5,}/', $name)) {
+                        $fail('Nome inválido');
+                    }
+                }
+            ],
             'cpf' => [
                 'required',
+                'string',
+                'min:11',
+                'max:14',
                 Rule::unique('visitors', 'cpf'),
                 new CpfRule,
             ],
@@ -87,23 +106,61 @@ class VisitorsController extends Controller
                 'email',
                 Rule::unique('visitors', 'email'),
             ],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'phone' => [
+                'nullable',
+                'string',
+                'min:10',
+                'max:15',
+            ],
             'type_id' => ['required', 'exists:visitor_types,id'],
-            'expires_at' => ['required', 'date', 'after:now'],
+            'expires_at' => [
+                'required',
+                'date',
+                'after:now',
+                function ($attribute, $value, $fail) {
+                    $inputDate = \Carbon\Carbon::parse($value);
+                    $today = now()->startOfDay();
+                    $maxDate = $today->copy()->addYears(2);
+                    
+                    if ($inputDate->year === 2030 && $inputDate->year > $today->year) {
+                        $maxDate = $today->copy()->addYears(4);
+                    } elseif ($inputDate->year >= 2028) {
+                        $maxDate = $today->copy()->addYears(2);
+                    }
+                    
+                    if ($inputDate->isAfter($maxDate)) {
+                        $fail('A data máxima é ' . $maxDate->format('d/m/Y') . '. Após esse ano não é permitida.');
+                    }
+                },
+            ],
         ]);
 
         try {
-            $this->visitorService->create([
+            $visitor = $this->visitorService->create([
                 ...$validated,
                 'created_by' => auth()->id(),
             ]);
 
+            $login = preg_replace('/\D/', '', $visitor->cpf);
+            
             return redirect()
                 ->route('visitors.index')
-                ->with('success', 'Visitante criado com sucesso.');
+                ->with('success', "Visitante criado com sucesso. Login: {$login} | Senha enviada para {$visitor->email}");
+        } catch (VisitorException $e) {
+            $field = $e->getField();
+            
+            if ($field) {
+                return back()
+                    ->withErrors([$field => $e->getMessage()])
+                    ->withInput();
+            }
+            
+            return back()
+                ->withErrors(['samba' => $e->getMessage()])
+                ->withInput();
         } catch (\Throwable $e) {
             return back()
-                ->withErrors(['samba' => 'Não foi possível criar o usuário no sistema de acesso (Samba). Tente novamente ou contate o suporte.'])
+                ->withErrors(['error' => 'Erro interno do servidor. Contate o suporte.'])
                 ->withInput();
         }
     }
@@ -126,7 +183,20 @@ class VisitorsController extends Controller
             'cpf' => 'required',
             'email' => 'nullable|email',
             'type_id' => 'required|exists:visitor_types,id',
-            'expires_at' => 'required|date',
+            'expires_at' => [
+                'required',
+                'date',
+                'after:now',
+                function ($attribute, $value, $fail) {
+                    $inputDate = \Carbon\Carbon::parse($value);
+                    $today = now()->startOfDay();
+                    
+                    if ($inputDate->year >= 2028) {
+                        $maxDate = $today->copy()->addYears(2);
+                        $fail('A data máxima é ' . $maxDate->format('d/m/Y') . '. Após esse ano não é permitida.');
+                    }
+                },
+            ],
         ]);
 
         $this->visitorService->update($visitor, $request->all());
@@ -137,8 +207,11 @@ class VisitorsController extends Controller
     public function generatePassword(Visitor $visitor)
     {
         $this->visitorService->generatePassword($visitor);
-
-        return back()->with('success', 'Nova senha gerada e enviada com sucesso.');
+        $visitor->refresh();
+        
+        $login = preg_replace('/\D/', '', $visitor->cpf);
+        
+        return back()->with('success', "Nova senha gerada. Login: {$login} | Nova senha enviada para {$visitor->email}");
     }
 
     public function resendPassword(Visitor $visitor)
@@ -148,14 +221,24 @@ class VisitorsController extends Controller
         if (!$result) {
             return back()->with('error', 'Voucher não encontrado para este visitante.');
         }
+        
+        $visitor->refresh();
+        $login = preg_replace('/\D/', '', $visitor->cpf);
 
-        return back()->with('success', 'Voucher reenviado com sucesso.');
+        return back()->with('success', "Voucher reenviado. Login: {$login} | Senha enviada para {$visitor->email}");
     }
 
     public function destroy(Visitor $visitor)
     {
-        $this->visitorService->delete($visitor);
+        $login = preg_replace('/\D/', '', $visitor->cpf);
+        $name = $visitor->name;
 
-        return back()->with('success', 'Visitante removido com sucesso.');
+        try {
+            $this->visitorService->delete($visitor);
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Erro ao remover visitante: ' . $e->getMessage());
+        }
+
+        return back()->with('success', "Visitante '{$name}' removido com sucesso.");
     }
 }

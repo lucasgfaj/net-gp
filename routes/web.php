@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivitiesController;
 use App\Http\Controllers\DepartmentsController;
 use App\Http\Controllers\VisitorsController;
 use App\Http\Controllers\VisitorImportController;
@@ -27,6 +28,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('users', UsersController::class);
+    Route::get('activities', [ActivitiesController::class, 'index'])
+        ->name('activities.index');
+    Route::get('activities/{activity}', [ActivitiesController::class, 'show'])
+        ->name('activities.show');
 });
 
 Route::middleware(['auth', 'admin'])->group(function () {
@@ -44,7 +49,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('visitors/import', [VisitorImportController::class, 'store'])
         ->name('visitors.import.store');
 
-    Route::resource('visitors', VisitorsController::class);
+    Route::get('visitors/create', [VisitorsController::class, 'create'])
+        ->name('visitors.create');
+
+    Route::get('visitors/{visitor}', [VisitorsController::class, 'show'])
+        ->name('visitors.show')
+        ->where('visitor', '[0-9]+');
+
+    Route::resource('visitors', VisitorsController::class)
+        ->only(['index', 'store', 'edit', 'update', 'destroy']);
 
     Route::post(
         'visitors/{visitor}/generate-password',

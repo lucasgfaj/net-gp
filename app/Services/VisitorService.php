@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Contracts\ActivityLogInterface;
 use App\Contracts\SambaInterface;
 use App\Contracts\VisitorInterface;
+use App\Enums\VisitorError;
+use App\Exceptions\VisitorException;
 use App\Models\Visitor;
 use App\Models\Voucher;
 use App\Notifications\ResendVisitorLogin;
@@ -23,9 +25,15 @@ class VisitorService implements VisitorInterface
     public function create(array $data): Visitor
     {
         return DB::transaction(function () use ($data) {
+            $login = preg_replace('/\D/', '', $data['cpf']);
+
+            if ($this->sambaService->userExists($login)) {
+                throw VisitorException::sambaUserExists($login);
+            }
+
             $visitor = Visitor::create([
                 'name' => $data['name'],
-                'cpf' => preg_replace('/\D/', '', $data['cpf']),
+                'cpf' => $login,
                 'email' => $data['email'] ?? null,
                 'phone' => $data['phone'] ?? null,
                 'type_id' => $data['type_id'],
@@ -34,7 +42,6 @@ class VisitorService implements VisitorInterface
                 'enabled' => true,
             ]);
 
-            $login = preg_replace('/\D/', '', $visitor->cpf);
             $passwordPlain = $this->generateRandomPassword();
 
             Voucher::create([
@@ -48,7 +55,8 @@ class VisitorService implements VisitorInterface
             $result = $this->sambaService->createSambaUser($login, $passwordPlain);
 
             if (!$result['success']) {
-                throw new \Exception($result['error'] ?? 'Erro ao criar usuário no Samba');
+                $error = VisitorError::fromSambaResult($result);
+                throw VisitorException::sambaConnectionError($error?->message() ?? $result['error'] ?? 'Erro ao criar usuário no Samba');
             }
 
             $this->activityLogService->logVisitorCreated($visitor->id, $visitor->name);
@@ -113,7 +121,21 @@ class VisitorService implements VisitorInterface
     {
         $login = preg_replace('/\D/', '', $visitor->cpf);
 
-        $this->sambaService->deleteSambaUser($login);
+        $result = $this->sambaService->deleteSambaUser($login);
+
+        if (!$result['success']) {
+            $errorMsg = $result['error'] ?? 'Erro desconhecido';
+            
+            if (stripos($errorMsg, 'NT_STATUS_NO_SUCH_USER') !== false || stripos($errorMsg, 'not found') !== false) {
+                \Log::warning('Usuário SAMBA não encontrado, continuando remoção local', ['login' => $login]);
+            } else {
+                \Log::error('Erro ao deletar usuário SAMBA', [
+                    'login' => $login,
+                    'error' => $errorMsg,
+                ]);
+            }
+        }
+
         Voucher::where('visitor_id', $visitor->id)->delete();
 
         $this->activityLogService->logVisitorDeleted($visitor->id, $visitor->name);
@@ -126,27 +148,43 @@ class VisitorService implements VisitorInterface
         $visitor->refresh();
 
         $login = preg_replace('/\D/', '', $visitor->cpf);
-        $passwordPlain = $this->generatePassword();
+        $passwordPlain = $this->generateRandomPassword();
+
+        $expiresAt = $visitor->expires_at ?? now()->addDays(7);
+        
+        if ($expiresAt->isPast()) {
+            $expiresAt = now()->addDays(7);
+            $visitor->update(['expires_at' => $expiresAt]);
+        }
 
         $voucher = Voucher::firstOrNew(['visitor_id' => $visitor->id]);
         $isNewVoucher = !$voucher->exists;
 
         $voucher->login = $login;
         $voucher->password = $passwordPlain;
-        $voucher->expires_at = $visitor->expires_at;
+        $voucher->expires_at = $expiresAt;
+        $voucher->created_by = $visitor->created_by;
         $voucher->save();
 
         if ($isNewVoucher) {
-            $this->sambaService->createSambaUser($login, $passwordPlain);
+            $result = $this->sambaService->createSambaUser($login, $passwordPlain);
         } else {
-            $this->sambaService->updateSambaUserPassword($login, $passwordPlain);
+            $result = $this->sambaService->updateSambaUserPassword($login, $passwordPlain);
+        }
+
+        if (!$result['success']) {
+            Log::error('Erro ao gerar senha no SAMBA', [
+                'visitor_id' => $visitor->id,
+                'login' => $login,
+                'error' => $result['error']
+            ]);
         }
 
         if ($visitor->email) {
             $visitor->notify(new UpdateVisitorLogin(
                 email: $login,
                 password: $passwordPlain,
-                expiresAt: $visitor->expires_at->format('d/m/Y H:i')
+                expiresAt: $expiresAt->format('d/m/Y H:i')
             ));
         }
 

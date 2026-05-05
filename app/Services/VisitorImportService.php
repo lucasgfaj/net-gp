@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Visitor;
 use App\Models\ImportBatch;
 use App\Jobs\ProcessVisitorImport;
+use App\Exceptions\VisitorException;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -47,7 +48,7 @@ class VisitorImportService
                 ProcessVisitorImport::dispatch($visitor, $this->batch)
                     ->delay(now()->addSeconds($index * 2));
 
-            } catch (\Throwable $e) {
+            } catch (VisitorException $e) {
                 $this->batch->increment('error_count');
                 
                 \App\Models\ImportError::create([
@@ -59,6 +60,7 @@ class VisitorImportService
                 
                 Log::warning("Erro na importação linha {$line}", [
                     'row' => $row,
+                    'error_code' => $e->getCodeEnum(),
                     'error' => $e->getMessage()
                 ]);
             }
@@ -79,45 +81,117 @@ class VisitorImportService
     protected function validateRow(array $row, int $line): void
     {
         if (count($row) < 2) {
-            throw new \Exception("Dados insuficientes (nome e CPF obrigatórios)");
+            throw VisitorException::invalidName('Dados insuficientes (nome e CPF obrigatórios)');
         }
 
         $name = trim($row[0] ?? '');
         $cpf = preg_replace('/\D/', '', $row[1] ?? '');
-        $email = isset($row[2]) ? trim($row[2]) : null;
+        $email = (isset($row[2]) && trim($row[2] ?? '') !== '') ? trim($row[2]) : null;
+        $phone = (isset($row[3]) && trim($row[3] ?? '') !== '') ? trim($row[3]) : null;
 
         if (empty($name)) {
-            throw new \Exception("Nome vazio");
+            throw VisitorException::invalidName();
+        }
+
+        if (!$this->isValidName($name)) {
+            throw VisitorException::invalidName('Nome deve conter apenas letras e espaços');
+        }
+
+        if (strlen($name) < 2) {
+            throw VisitorException::invalidName('Nome muito curto');
+        }
+
+        if (strlen($name) > 255) {
+            throw VisitorException::invalidName('Nome muito longo');
         }
 
         if (empty($cpf) || strlen($cpf) < 11) {
-            throw new \Exception("CPF inválido (muito curto)");
+            throw VisitorException::invalidCpfLength();
         }
 
         if (!$this->isValidCpf($cpf)) {
-            throw new \Exception("CPF inválido (dígito verificador)");
+            throw VisitorException::invalidCpf();
+        }
+
+        if (!empty($phone) && !$this->isValidPhone($phone)) {
+            throw VisitorException::invalidPhone();
         }
 
         if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new \Exception("Email inválido");
+            throw VisitorException::invalidEmail();
         }
 
         if (Visitor::where('cpf', $cpf)->exists()) {
-            throw new \Exception("CPF já cadastrado no sistema");
+            throw VisitorException::duplicateCpf($cpf);
         }
 
         if (empty($email)) {
-            throw new \Exception("Email é obrigatório para enviar login/senha");
+            throw new VisitorException(
+                \App\Enums\VisitorError::INVALID_EMAIL,
+                'Email é obrigatório para enviar login/senha'
+            );
         }
 
         if (Visitor::where('email', $email)->exists()) {
-            throw new \Exception("Email já cadastrado no sistema");
+            throw VisitorException::duplicateEmail($email);
+        }
+    }
+
+    protected function isValidName(string $name): bool
+    {
+        $name = trim($name);
+        
+        if (preg_match('/[\d\p{Punctuation}]/u', $name)) {
+            return false;
+        }
+        
+        if (preg_match('/(.)\1{5,}/', $name)) {
+            return false;
+        }
+        
+        return true;
+    }
+
+protected function isValidPhone(string $phone): bool
+    {
+        $digits = preg_replace('/\D/', '', $phone);
+        
+        if (strlen($digits) < 10 || strlen($digits) > 11) {
+            return false;
+        }
+        
+        return true;
+    }
+
+    protected function validateExpiresAt(?string $date, int $line): string
+    {
+        if (empty($date)) {
+            return $this->defaultExpires;
+        }
+
+        try {
+            $parsed = Carbon::parse($date);
+            
+            if ($parsed->isPast()) {
+                throw VisitorException::invalidDate('Data não pode estar no passado');
+            }
+            
+            $maxDate = now()->addYears(2);
+            if ($parsed->isAfter($maxDate)) {
+                throw VisitorException::invalidDate('Data máxima é de 2 anos');
+            }
+            
+            return $parsed->format('Y-m-d');
+        } catch (\Throwable $e) {
+            if ($e instanceof VisitorException) {
+                throw $e;
+            }
+            throw VisitorException::invalidDate();
         }
     }
 
     protected function isValidCpf(string $cpf): bool
     {
-        $cpf = preg_replace('/\D/', '', $cpf);
 
         if (strlen($cpf) != 11) {
             return false;
@@ -128,6 +202,10 @@ class VisitorImportService
         }
 
         $digits = array_map('intval', str_split($cpf));
+
+        if (count($digits) < 11) {
+            return false;
+        }
 
         $sum = 0;
         for ($i = 0; $i < 9; $i++) {
@@ -150,13 +228,13 @@ class VisitorImportService
 
     protected function createVisitor(array $row): Visitor
     {
-        $name = isset($row[0]) ? trim($row[0]) : '';
-        $cpf = isset($row[1]) ? preg_replace('/\D/', '', $row[1]) : '';
-        $email = isset($row[2]) && !empty(trim($row[2])) ? trim($row[2]) : null;
-        $phone = isset($row[3]) && !empty(trim($row[3])) ? trim($row[3]) : null;
-        $reason = isset($row[4]) && !empty(trim($row[4])) ? trim($row[4]) : null;
+        $name = trim($row[0] ?? '');
+        $cpf = preg_replace('/\D/', '', $row[1] ?? '');
+        $email = (array_key_exists(2, $row) && trim($row[2] ?? '') !== '') ? trim($row[2]) : null;
+        $phone = (array_key_exists(3, $row) && trim($row[3] ?? '') !== '') ? trim($row[3]) : null;
+        $reason = (array_key_exists(4, $row) && trim($row[4] ?? '') !== '') ? trim($row[4]) : null;
 
-        $expiresAt = isset($row[5]) && !empty($row[5])
+        $expiresAt = (array_key_exists(5, $row) && trim($row[5] ?? '') !== '')
             ? Carbon::parse($row[5])->format('Y-m-d')
             : $this->defaultExpires;
 

@@ -45,10 +45,10 @@ export default function VisitorTypesIndex() {
         if (typing) liveSearch(search);
     }, [search]);
 
-    useEffect(() => {
+useEffect(() => {
         const interval = setInterval(() => {
-            router.reload({ only: ['visitorTypes'] });
-        }, 5000);
+            router.reload({ only: ['types'] });
+        }, 1000);
         return () => clearInterval(interval);
     }, []);
 
@@ -153,7 +153,7 @@ export default function VisitorTypesIndex() {
                     </Table>
                 </div>
 
-                {paginated.total > paginated.per_page && (
+                {paginated && paginated.total > paginated.per_page && (
                     <Pagination links={paginated.links} />
                 )}
             </div>

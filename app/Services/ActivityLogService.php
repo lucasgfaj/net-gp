@@ -21,6 +21,10 @@ class ActivityLogService implements ActivityLogInterface
             'user_id' => $user->id,
             'action' => $action,
             'data' => array_merge($data ?? [], [
+                'user_name' => $user->name,
+                'user_email' => $user->email,
+                'user_role' => $user->role,
+                'user_department' => $user->department?->name ?? 'Sem departamento',
                 'ip' => Request::ip(),
                 'user_agent' => Request::userAgent(),
             ]),

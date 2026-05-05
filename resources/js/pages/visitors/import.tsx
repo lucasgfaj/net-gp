@@ -88,7 +88,7 @@ export default function VisitorImport({ types }: VisitorImportProps) {
                             </Button>
                         </Link>
                         <div>
-                            <h1 className="text-2xl font-bold">Importar Visitantes</h1>
+                            <h1 className="text-2xl font-bold">Importação em Lote</h1>
                             <p className="text-sm text-muted-foreground">
                                 Importe visitantes em lote através de arquivo CSV ou Excel
                             </p>
@@ -105,7 +105,7 @@ export default function VisitorImport({ types }: VisitorImportProps) {
                     <CardHeader className="pb-4">
                         <CardTitle className="text-lg">Padrões para os Visitantes</CardTitle>
                         <CardDescription>
-                            Estes valores serão aplicados a todos os visitantes do arquivo quando não informados no CSV
+                            Estes valores serão aplicados a todos os visitantes do arquivo quando não informados
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -184,7 +184,7 @@ export default function VisitorImport({ types }: VisitorImportProps) {
                                         </SelectContent>
                                     </Select>
                                     <p className="text-xs text-muted-foreground">
-                                        Tipo padrão quando não informado no CSV
+                                        Tipo padrão quando não informado
                                     </p>
                                 </div>
 
@@ -201,7 +201,7 @@ export default function VisitorImport({ types }: VisitorImportProps) {
                                         required
                                     />
                                     <p className="text-xs text-muted-foreground">
-                                        Data padrão quando não informada no CSV
+                                        Data padrão quando não informada
                                     </p>
                                 </div>
                             </div>

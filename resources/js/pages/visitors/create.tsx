@@ -13,9 +13,10 @@ import AppLayout from '@/layouts/app-layout';
 import visitors from '@/routes/visitors';
 import { type BreadcrumbItem } from '@/types';
 import { maskCPF, maskPhone } from '@/utils/masks';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
+import { Toaster } from '@/components/ui/sonner';
 
 
 export default function CreateVisitor({ types }: any) {
@@ -40,7 +41,7 @@ export default function CreateVisitor({ types }: any) {
         e.preventDefault();
 
         if (!data.expires_at) {
-            toast("Informe uma data de expiração.");
+            toast.error("Informe uma data de expiração.");
             return;
         }
 
@@ -50,11 +51,24 @@ export default function CreateVisitor({ types }: any) {
         const selectedDate = new Date(data.expires_at + "T00:00:00");
 
         if (selectedDate < today) {
-            toast("A data de expiração não pode ser menor que hoje.");
+            toast.error("A data de expiração não pode ser menor que hoje.");
             return;
         }
 
-        post(visitors.store.post().url);
+        post(visitors.store.post().url, {
+            onSuccess: (page: any) => {
+                const success = page.props.flash?.success;
+                if (success) {
+                    toast.success(success);
+                }
+            },
+            onError: (errors: any) => {
+                const firstError = Object.values(errors)[0];
+                if (firstError) {
+                    toast.error(String(firstError));
+                }
+            },
+        });
     };
 
     useEffect(() => {
@@ -73,6 +87,7 @@ export default function CreateVisitor({ types }: any) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Criar Visitante" />
+            <Toaster />
 
             <div className="w-full p-4 md:p-6">
                 <h1 className="mb-6 text-2xl font-semibold">Criar Visitante</h1>
@@ -163,14 +178,14 @@ export default function CreateVisitor({ types }: any) {
                         </div>
 
                         <div>
-                            <Label>Instituição / Vínculo</Label>
+                            <Label>Observação</Label>
                             <Input
                                 name="school"
                                 value={data.school}
                                 onChange={(e) =>
                                     setData('school', e.target.value)
                                 }
-                                placeholder="Instituição / Vínculo"
+                                placeholder="Observação"
                             />
                             <FieldError message={errors.school} />
                         </div>
@@ -193,28 +208,7 @@ export default function CreateVisitor({ types }: any) {
                             </p>
                         </div>
 
-                        {/* STATUS */}
-                        <div>
-                            <Label>Status</Label>
-                            <Select
-                                value={data.enabled ? '1' : '0'}
-                                onValueChange={(value) =>
-                                    setData('enabled', value === '1')
-                                }
-                            >
-                                <SelectTrigger
-                                    className="w-full"
-                                    name="enabled"
-                                >
-                                    <SelectValue placeholder="Selecione" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="1">Ativo</SelectItem>
-                                    <SelectItem value="0">Inativo</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FieldError message={errors.enabled} />
-                        </div>
+                        
                     </div>
 
                     <div className="flex gap-3 pt-4">

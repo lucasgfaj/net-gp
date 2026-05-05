@@ -3,8 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import AppLayout from '@/layouts/app-layout';
 import visitors from '@/routes/visitors';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ArrowLeft, Edit, Mail, Calendar, Building, User } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { ArrowLeft, Edit, Mail, Calendar, Building, User, Send } from 'lucide-react';
+import { toast } from 'sonner';
+import { Toaster } from '@/components/ui/sonner';
 
 interface Visitor {
     id: number;
@@ -52,6 +54,7 @@ export default function VisitorShow() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Visitante: ${visitor.name}`} />
+            <Toaster />
 
             <div className="container mx-auto py-6 max-w-3xl">
                 <div className="flex items-center justify-between mb-6">
@@ -66,12 +69,42 @@ export default function VisitorShow() {
                             <p className="text-muted-foreground">Detalhes do visitante</p>
                         </div>
                     </div>
-                    <Link href={visitors.edit.get(visitor.id)}>
-                        <Button>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar
-                        </Button>
-                    </Link>
+                    <div className="flex gap-2">
+                        {visitor.email && (
+                            <Button
+                                variant="outline"
+                                onClick={() =>
+                                    router.post(
+                                        visitors.resendPassword(visitor.id).url,
+                                        {},
+                                        {
+                                            onSuccess: (page: any) => {
+                                                const success = page.props.flash?.success;
+                                                if (success) {
+                                                    toast.success(success);
+                                                }
+                                            },
+                                            onError: (errors: any) => {
+                                                const firstError = Object.values(errors)[0];
+                                                if (firstError) {
+                                                    toast.error(String(firstError));
+                                                }
+                                            },
+                                        }
+                                    )
+                                }
+                            >
+                                <Send className="mr-2 h-4 w-4" />
+                                Reenviar
+                            </Button>
+                        )}
+                        <Link href={visitors.edit.get(visitor.id)}>
+                            <Button>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Editar
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -102,6 +135,12 @@ export default function VisitorShow() {
                                     <span className="text-sm">{visitor.phone}</span>
                                 </div>
                             )}
+                            {visitor.school && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm">Observação:</span>
+                                    <span className="text-sm">{visitor.school}</span>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 
@@ -123,12 +162,7 @@ export default function VisitorShow() {
                                         : '-'}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm">Status:</span>
-                                <span className={`text-sm ${visitor.enabled ? 'text-green-600' : 'text-red-600'}`}>
-                                    {visitor.enabled ? 'Ativo' : 'Inativo'}
-                                </span>
-                            </div>
+                            
                         </CardContent>
                     </Card>
 

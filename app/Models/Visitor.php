@@ -71,19 +71,22 @@ class Visitor extends Model
         User $user,
         ?int $departmentId
     ): Builder {
-        if ($user->department_id === 1) {
+        if ($user->role === 'admin') {
             if ($departmentId && $departmentId !== 'all') {
                 return $query->whereHas('creator', fn ($q) =>
                     $q->where('department_id', $departmentId)
                 );
             }
-
             return $query;
         }
 
-        return $query->whereHas('creator', fn ($q) =>
-            $q->where('department_id', $user->department_id)
-        );
+        if ($user->role === 'operator') {
+            return $query->whereHas('creator', fn ($q) =>
+                $q->where('department_id', $user->department_id)
+            );
+        }
+
+        return $query;
     }
 
     public function scopeSearch(Builder $query, ?string $search): Builder

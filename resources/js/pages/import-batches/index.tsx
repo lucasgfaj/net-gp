@@ -46,7 +46,7 @@ export default function ImportBatchesIndex() {
     useEffect(() => {
         const interval = setInterval(() => {
             router.reload({ only: ['batches'] });
-        }, 5000);
+        }, 1000);
         return () => clearInterval(interval);
     }, []);
 
@@ -83,7 +83,7 @@ export default function ImportBatchesIndex() {
                 <div className="mb-6">
                     <h1 className="text-xl font-bold">Importações</h1>
                     <p className="text-sm text-muted-foreground">
-                        Gerencie as importações de visitantes via CSV
+                        Gerencie as importações de visitantes em lote
                     </p>
                 </div>
 

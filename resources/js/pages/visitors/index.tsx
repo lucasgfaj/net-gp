@@ -19,6 +19,8 @@ import { Head, Link, router, usePage } from "@inertiajs/react";
 import debounce from "lodash.debounce";
 import { Edit, Trash2, SlidersHorizontal, FileSpreadsheet } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function VisitorsIndex() {
     const { props }: any = usePage();
@@ -53,7 +55,7 @@ export default function VisitorsIndex() {
     useEffect(() => {
         const interval = setInterval(() => {
             router.reload({ only: ['visitors'] });
-        }, 5000);
+        }, 1000);
         return () => clearInterval(interval);
     }, []);
 
@@ -95,6 +97,7 @@ export default function VisitorsIndex() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Visitantes" />
+            <Toaster />
 
             <div className="flex flex-col gap-4 p-4 sm:p-6">
 
@@ -133,7 +136,7 @@ export default function VisitorsIndex() {
                         >
                             <Button variant="outline" className="w-full sm:w-auto">
                                 <FileSpreadsheet className="mr-2 h-4 w-4" />
-                                Importar CSV
+                                Importação em Lote
                             </Button>
                         </Link>
                         <Link
@@ -159,7 +162,7 @@ export default function VisitorsIndex() {
 
                 {/* TABELA */}
                 <div className="overflow-x-auto rounded-xl border">
-                    <Table className="min-w-[900px]">
+                    <Table className="min-w-[900px] w-full">
                         <TableHeader>
                             <TableRow>
                                 <TableHead>#</TableHead>
@@ -212,7 +215,21 @@ export default function VisitorsIndex() {
 
                                         <ConfirmDialog
                                             onConfirm={() =>
-                                                router.delete(visitors.destroy(v.id).url, { preserveScroll: true })
+                                                router.delete(visitors.destroy(v.id).url, {
+                                                    preserveScroll: true,
+                                                    onSuccess: (page: any) => {
+                                                        const success = page.props.flash?.success;
+                                                        if (success) {
+                                                            toast.success(success);
+                                                        }
+                                                    },
+                                                    onError: (errors: any) => {
+                                                        const firstError = Object.values(errors)[0];
+                                                        if (firstError) {
+                                                            toast.error(String(firstError));
+                                                        }
+                                                    },
+                                                })
                                             }
                                             title="Excluir Visitante"
                                             description={`Tem certeza que deseja excluir "${v.name}"?`}
@@ -230,7 +247,7 @@ export default function VisitorsIndex() {
                 </div>
 
                 {/* PAGINAÇÃO */}
-                {paginated.total > paginated.per_page && (
+                {paginated && paginated.total > paginated.per_page && (
                     <Pagination links={paginated.links} />
                 )}
             </div>
