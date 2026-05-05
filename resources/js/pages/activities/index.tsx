@@ -6,6 +6,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
@@ -14,10 +15,12 @@ import { Eye } from 'lucide-react';
 
 interface Activity {
     id: number;
-    created_at: string;
+    user: string | null;
+    department: string | null;
+    user_role: string | null;
+    action_label: string;
     action: string;
-    data: { name?: string; description?: string } | null;
-    user: { name: string } | null;
+    created_at: string;
 }
 
 interface Props {
@@ -61,14 +64,28 @@ export default function ActivitiesIndex({ activities }: Props) {
                             ) : (
                                 items.map((activity: Activity) => (
                                     <TableRow key={activity.id}>
-                                        <TableCell className="whitespace-nowrap">
-                                            {new Date(activity.created_at).toLocaleString('pt-BR')}
+                                        <TableCell className="whitespace-nowrap text-muted-foreground">
+                                            {activity.created_at}
                                         </TableCell>
-                                        <TableCell>{activity.user?.name || 'Sistema'}</TableCell>
                                         <TableCell>
-                                            <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
-                                                {activity.action}
-                                            </span>
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">{activity.user || 'Sistema'}</span>
+                                                {activity.department && (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {activity.department}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col gap-1">
+                                                <Badge variant="secondary" className="w-fit">
+                                                    {activity.action_label}
+                                                </Badge>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {activity.action}
+                                                </span>
+                                            </div>
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <Link href={`/activities/${activity.id}`}>

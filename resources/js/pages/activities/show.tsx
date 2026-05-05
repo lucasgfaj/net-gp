@@ -32,6 +32,7 @@ interface Props {
         id: number;
         created_at: string;
         action: string;
+        action_label: string;
         data: ActivityData | null;
         user: UserInfo | null;
     };
@@ -43,22 +44,6 @@ export default function ActivityShow({ activity }: Props) {
         { title: 'Atividades', href: '/activities' },
         { title: 'Detalhes', href: '#' },
     ];
-
-    const getActionLabel = (action: string): string => {
-        const labels: Record<string, string> = {
-            visitor_created: 'Visitante Criado',
-            visitor_updated: 'Visitante Atualizado',
-            visitor_deleted: 'Visitante Excluído',
-            visitor_password_generated: 'Senha Gerada',
-            visitor_expired: 'Visitante Expirado',
-            user_login: 'Login de Usuário',
-            department_created: 'Departamento Criado',
-            department_deleted: 'Departamento Excluído',
-            visitor_type_created: 'Tipo de Visitante Criado',
-            visitor_type_deleted: 'Tipo de Visitante Excluído',
-        };
-        return labels[action] || action;
-    };
 
     const getActionDescription = (action: string): string => {
         const descriptions: Record<string, string> = {
@@ -94,7 +79,7 @@ export default function ActivityShow({ activity }: Props) {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Clock className="h-5 w-5" />
-                            {getActionLabel(activity.action)}
+                            {activity.action_label}
                         </CardTitle>
                         <CardDescription>
                             {getActionDescription(activity.action)}
