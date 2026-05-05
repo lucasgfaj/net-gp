@@ -114,7 +114,7 @@ class DashboardController extends Controller
 
         $recentActivities = ActivityLog::with('user.department')
             ->orderBy('created_at', 'desc')
-            ->limit(15)
+            ->limit(5)
             ->get()
             ->map(function ($log) {
                 switch ($log->action) {
@@ -153,6 +153,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $log->id,
                     'user' => $log->user ? $log->user->name : null,
+                    'user_role' => $log->user ? $log->user->role : null,
                     'department' => $log->user && $log->user->department ? $log->user->department->name : null,
                     'action' => $description,
                     'created_at' => $log->created_at->format('d/m H:i'),

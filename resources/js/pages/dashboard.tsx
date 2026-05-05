@@ -4,7 +4,7 @@ import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
-import { usePage, router } from '@inertiajs/react';
+import { usePage, router, Link } from '@inertiajs/react';
 import { UserPlus, Users, Calendar, Clock, AlertCircle, FileSpreadsheet, CheckCircle, XCircle } from 'lucide-react';
 import { useEffect } from 'react';
 
@@ -243,20 +243,26 @@ export default function Dashboard() {
                             {recentActivities?.length > 0 ? (
                                 <div className="space-y-2">
                                     {recentActivities.map((activity: any) => (
-                                        <div
+                                        <Link
                                             key={activity.id}
-                                            className="flex items-center justify-between"
+                                            href={`/activities/${activity.id}`}
+                                            className="flex items-center justify-between hover:bg-muted/50 p-2 -mx-2 rounded transition-colors"
                                         >
                                             <div className="flex flex-col">
                                                 <div className="flex items-center gap-2">
+                                                    {activity.department && (
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {activity.department}
+                                                        </span>
+                                                    )}
                                                     <span className="text-sm font-medium">
-                                                        {activity.department && (
-                                                            <span className="text-xs text-muted-foreground">
-                                                                {activity.department}
-                                                            </span>
-                                                        )}{' '}
                                                         {activity.user}
                                                     </span>
+                                                    {activity.user_role === 'admin' && (
+                                                        <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
+                                                            admin
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <span className="text-xs text-muted-foreground">
                                                     {activity.action}
@@ -265,7 +271,7 @@ export default function Dashboard() {
                                             <span className="text-xs text-muted-foreground">
                                                 {activity.created_at}
                                             </span>
-                                        </div>
+                                        </Link>
                                     ))}
                                 </div>
                             ) : (
