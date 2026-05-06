@@ -25,7 +25,7 @@ class VisitorImportService
         ?int $totalRows = null
     ): ImportBatch {
         $this->createdBy = $createdBy;
-        $this->defaultExpires = $expiresAt ?? now()->addDays(7)->format('Y-m-d');
+        $this->defaultExpires = $expiresAt ?? now()->addDays(7)->startOfDay()->format('Y-m-d');
         $this->defaultTypeId = $typeId ?? 1;
 
         $this->batch = ImportBatch::create([
@@ -235,7 +235,7 @@ protected function isValidPhone(string $phone): bool
         $reason = (array_key_exists(4, $row) && trim($row[4] ?? '') !== '') ? trim($row[4]) : null;
 
         $expiresAt = (array_key_exists(5, $row) && trim($row[5] ?? '') !== '')
-            ? Carbon::parse($row[5])->format('Y-m-d')
+            ? Carbon::parse($row[5])->startOfDay()->format('Y-m-d')
             : $this->defaultExpires;
 
         $visitor = Visitor::create([

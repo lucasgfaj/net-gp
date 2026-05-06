@@ -49,7 +49,7 @@ export default function ActivitiesIndex({ activities }: Props) {
                             <TableRow>
                                 <TableHead>Data/Hora</TableHead>
                                 <TableHead>Usuario</TableHead>
-                                <TableHead>Acao</TableHead>
+                                <TableHead>Ação</TableHead>
                                 <TableHead className="text-right">Detalhes</TableHead>
                             </TableRow>
                         </TableHeader>

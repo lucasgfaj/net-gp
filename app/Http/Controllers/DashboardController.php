@@ -38,7 +38,7 @@ class DashboardController extends Controller
             ->count();
 
         $expiredVisitors = (clone $queryBase)
-            ->where('expires_at', '<=', $now)
+            ->where('expires_at', '<', $today)
             ->count();
 
         $departments = Department::all();
@@ -80,8 +80,8 @@ class DashboardController extends Controller
             'visitor.creator.department',
         ])
             ->whereNotNull('expires_at')
-            ->where('expires_at', '>', $now)
-            ->where('expires_at', '<=', $now->copy()->addDays(7));
+            ->where('expires_at', '>=', $today->startOfDay())
+            ->where('expires_at', '<', $today->copy()->addDays(8));
 
         if ($user->department_id !== 1) {
             $nextToExpireQuery->whereHas('visitor.creator', fn ($q) =>
@@ -98,7 +98,7 @@ class DashboardController extends Controller
             'type',
             'creator.department',
         ])
-            ->where('expires_at', '<=', $now)
+            ->where('expires_at', '<', $today)
             ->whereHas('voucher');
 
         if ($user->department_id !== 1) {

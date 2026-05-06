@@ -25,6 +25,8 @@ interface ActivityData {
     type_name?: string;
     old?: Record<string, unknown>;
     new?: Record<string, unknown>;
+    ip?: string;
+    user_agent?: string;
 }
 
 interface Props {
@@ -116,7 +118,7 @@ export default function ActivityShow({ activity }: Props) {
                             </div>
                             <div>
                                 <span className="text-sm font-medium text-muted-foreground">Email</span>
-                                <p className="text-sm">{activity.user?.email || '-'}</p>
+                                <p className="text-sm">{activity.user?.email|| '-'}</p>
                             </div>
                             <div>
                                 <span className="text-sm font-medium text-muted-foreground">Papel</span>

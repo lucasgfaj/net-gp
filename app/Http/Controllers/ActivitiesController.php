@@ -24,18 +24,19 @@ class ActivitiesController extends Controller
         return $labels[$action] ?? $action;
     }
 
-private function getActionDescription(string $action, array $data): string
+private function getActionDescription(string $action, array $data, ?string $userName = null): string
     {
+        $userPart = $userName ? $userName . ': ' : '';
         return match ($action) {
-            'visitor_created' => 'Novo visitante criado: ' . ($data['visitor_name'] ?? ''),
-            'visitor_updated' => 'Dados atualizados de: ' . ($data['visitor_name'] ?? ''),
-            'visitor_deleted' => 'Visitante removido do sistema: ' . ($data['visitor_name'] ?? ''),
-            'visitor_password_generated' => 'Senha redefinida para: ' . ($data['visitor_name'] ?? ''),
+            'visitor_created' => $userPart . 'Novo visitante: ' . ($data['visitor_name'] ?? ''),
+            'visitor_updated' => $userPart . 'Atualizou: ' . ($data['visitor_name'] ?? ''),
+            'visitor_deleted' => $userPart . 'Removeu: ' . ($data['visitor_name'] ?? ''),
+            'visitor_password_generated' => $userPart . 'Nova senha: ' . ($data['visitor_name'] ?? ''),
             'visitor_expired' => 'Acesso expirou (login: ' . ($data['login'] ?? '') . ')',
-            'department_created' => 'Departamento criado: ' . ($data['department_name'] ?? ''),
-            'department_deleted' => 'Departamento removido: ' . ($data['department_name'] ?? ''),
-            'visitor_type_created' => 'Tipo de visitante criado: ' . ($data['type_name'] ?? ''),
-            'visitor_type_deleted' => 'Tipo de visitante removido: ' . ($data['type_name'] ?? ''),
+            'department_created' => $userPart . 'Novo depto: ' . ($data['department_name'] ?? ''),
+            'department_deleted' => $userPart . 'Removeu dept: ' . ($data['department_name'] ?? ''),
+            'visitor_type_created' => $userPart . 'Novo tipo: ' . ($data['type_name'] ?? ''),
+            'visitor_type_deleted' => $userPart . 'Removeu tipo: ' . ($data['type_name'] ?? ''),
             default => $action,
         };
     }
@@ -60,7 +61,7 @@ private function getActionDescription(string $action, array $data): string
                 'department' => $log->user?->department?->name,
                 'user_role' => $log->user?->role,
                 'action_label' => $this->getActionLabel($log->action),
-                'action' => $this->getActionDescription($log->action, $log->data ?? []),
+                'action' => $this->getActionDescription($log->action, $log->data ?? [], $log->user?->name),
                 'created_at' => $log->created_at->format('d/m H:i'),
             ];
         });
