@@ -70,12 +70,12 @@ class VisitorImportService
         
         $totalProcessed = $this->batch->success_count + $this->batch->error_count;
         
-        if ($this->batch->success_count > 0 && $this->batch->error_count == 0 && $totalProcessed >= $this->batch->total_rows) {
-            $this->batch->update(['status' => 'completed']);
-        } elseif ($this->batch->error_count > 0 && $totalProcessed >= $this->batch->total_rows) {
-            $this->batch->update(['status' => 'failed']);
-        } elseif ($totalProcessed >= $this->batch->total_rows && $this->batch->success_count > 0) {
-            $this->batch->update(['status' => 'completed']);
+        if ($totalProcessed >= $this->batch->total_rows) {
+            if ($this->batch->error_count > 0 && $this->batch->success_count == 0) {
+                $this->batch->update(['status' => 'failed']);
+            } else {
+                $this->batch->update(['status' => 'completed']);
+            }
         }
 
         return $this->batch->refresh();

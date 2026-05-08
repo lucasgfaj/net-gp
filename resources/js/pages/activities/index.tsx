@@ -45,7 +45,7 @@ export default function ActivitiesIndex({ activities }: Props) {
 
             <div className="flex flex-col gap-4 p-4 sm:p-6">
                 <div className="overflow-x-auto rounded-xl border">
-                    <Table className="min-w-[600px] sm:min-w-[800px] w-full">
+                    <Table className="min-w-[700px] sm:min-w-[900px] w-full">
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="whitespace-nowrap">Data/Hora</TableHead>
@@ -79,11 +79,11 @@ export default function ActivitiesIndex({ activities }: Props) {
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex flex-col gap-1">
+                                            <div className="flex flex-col gap-1 min-w-[120px]">
                                                 <Badge variant="secondary" className="w-fit text-xs">
                                                     {activity.action_label}
                                                 </Badge>
-                                                <span className="text-xs text-muted-foreground hidden sm:inline">
+                                                <span className="text-xs text-muted-foreground whitespace-normal break-words max-w-[200px]">
                                                     {activity.action}
                                                 </span>
                                             </div>

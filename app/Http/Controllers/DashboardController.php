@@ -121,7 +121,10 @@ $user = auth()->user();
                     case 'visitor_created':
                         $description = "Novo visitante: " . ($log->data['visitor_name'] ?? '');
                         break;
-                    case 'visitor_updated':
+                    case 'visitor_password_resent':
+                        $description = "Senha reenviada para: " . ($log->data['visitor_name'] ?? '');
+                        break;
+                    case 'visitor_updated': 
                         $description = "Atualizou: " . ($log->data['visitor_name'] ?? '');
                         break;
                     case 'visitor_deleted':

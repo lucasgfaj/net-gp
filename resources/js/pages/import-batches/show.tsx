@@ -89,9 +89,9 @@ return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Importação: ${batch.filename}`} />
 
-            <div className="container mx-auto py-6 max-w-6xl">
+            <div className="flex flex-col gap-4 p-4 sm:p-6">
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <Link href={importBatches.index.url()}>
                             <Button variant="outline" size="icon">
@@ -99,28 +99,30 @@ return (
                             </Button>
                         </Link>
                         <div>
-                            <h1 className="text-xl font-bold flex items-center gap-2">
-                                <FileSpreadsheet className="h-5 w-5" />
-                                {batch.filename}
-                                {(batch.status === 'processing' || batch.status === 'partial') && (
+                            <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                                <FileSpreadsheet className="h-5 w-5 shrink-0" />
+                                <span className="truncate max-w-[150px] sm:max-w-[300px]">{batch.filename}</span>
+                                {batch.status === 'processing' && (
                                     <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
                                 )}
                             </h1>
-                            <p className="text-sm text-muted-foreground">
-                                {new Date(batch.created_at).toLocaleDateString('pt-BR')} • {batch.creator?.name}
+                            <p className="text-xs sm:text-sm text-muted-foreground">
+                                {new Date(batch.created_at).toLocaleDateString('pt-BR')} • {shortenName(batch.creator?.name)}
                             </p>
                         </div>
                     </div>
-                    <ConfirmDialog
-                        title="Excluir Lote"
-                        description="Todos os visitantes e vouchers serão removidos."
-                        onConfirm={handleDeleteBatch}
-                    >
-                        <Button variant="destructive" size="sm">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir
-                        </Button>
-                    </ConfirmDialog>
+                    {batch.status !== 'deleted' && (
+                        <ConfirmDialog
+                            title="Excluir Lote"
+                            description="Todos os visitantes e vouchers serão removidos."
+                            onConfirm={handleDeleteBatch}
+                        >
+                            <Button variant="destructive" size="sm">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                <span className="hidden sm:inline">Excluir</span>
+                            </Button>
+                        </ConfirmDialog>
+                    )}
                 </div>
 
                 {/* Estatísticas */}
