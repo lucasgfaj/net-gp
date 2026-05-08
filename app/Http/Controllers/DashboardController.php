@@ -15,8 +15,8 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $user = auth()->user();
-        $today = Carbon::today();
+$user = auth()->user();
+        $today = Carbon::today()->utc();
         $now = Carbon::now();
 
         $queryBase = Visitor::query()
@@ -32,8 +32,8 @@ class DashboardController extends Controller
 
         $totalThisMonth = (clone $queryBase)
             ->whereBetween('created_at', [
-                $today->startOfMonth(),
-                $today->endOfMonth(),
+                $today->copy()->startOfMonth(),
+                $today->copy()->endOfMonth(),
             ])
             ->count();
 

@@ -12,12 +12,24 @@ import {
 import AppLayout from '@/layouts/app-layout';
 import visitors from '@/routes/visitors';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, useForm } from '@inertiajs/react';
-import React from 'react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import React, { useEffect } from 'react';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 
 export default function EditVisitor({ visitor, types, voucher }: any) {
+    const { props } = usePage<any>();
+    const flash = props.flash;
+
+    useEffect(() => {
+        if (flash.success) {
+            toast.success(flash.success);
+        }
+        if (flash.error) {
+            toast.error(flash.error);
+        }
+    }, [flash.success, flash.error]);
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Visitantes', href: visitors.index.get().url },
         { title: 'Editar', href: '#' },
@@ -206,10 +218,19 @@ export default function EditVisitor({ visitor, types, voucher }: any) {
                             title="Gerar nova senha"
                             description="Deseja realmente gerar uma nova senha para este visitante?"
                             onConfirm={() => {
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                const selectedDate = new Date(data.expires_at + "T00:00:00");
+
+                                if (!data.expires_at || selectedDate < today) {
+                                    toast.error("Ajuste a data de expiração para hoje ou posterior.");
+                                    return;
+                                }
+
                                 router.post(
-                                    visitors.generatePassword({ visitor: visitor.id }).url
+                                    visitors.generatePassword({ visitor: visitor.id }).url,
+                                    { preserveState: false }
                                 );
-                                toast.success("Nova senha gerada com sucesso!");
                             }}
                             trigger={
                                 <Button type="button" disabled={processing}>

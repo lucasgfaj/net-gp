@@ -8,6 +8,7 @@ import importBatches from '@/routes/import-batches';
 import { type BreadcrumbItem } from '@/types';
 import { Head, usePage, router, Link } from '@inertiajs/react';
 import { Trash2, Mail, MailOpen, ArrowLeft, FileSpreadsheet, AlertCircle, RefreshCw } from 'lucide-react';
+import { shortenName } from '@/lib/utils';
 import { useEffect } from 'react';
 
 interface Visitor {
@@ -209,7 +210,7 @@ return (
                             ) : (
                                 visitors.data.map((visitor) => (
                                     <TableRow key={visitor.id} className="hover:bg-muted/50">
-                                        <TableCell className="font-medium text-sm">{visitor.name}</TableCell>
+                                        <TableCell className="font-medium text-sm">{shortenName(visitor.name)}</TableCell>
                                         <TableCell className="font-mono text-sm">{visitor.cpf}</TableCell>
                                         <TableCell className="text-sm truncate max-w-[150px]">{visitor.email ?? '-'}</TableCell>
                                         <TableCell className="text-sm">{visitor.type.name}</TableCell>

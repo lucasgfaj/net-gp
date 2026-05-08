@@ -199,19 +199,28 @@ class VisitorsController extends Controller
             ],
         ]);
 
-        $this->visitorService->update($visitor, $request->all());
+        $this->visitorService->update($visitor, $request->all(), auth()->id());
 
         return back()->with('success', 'Visitante atualizado com sucesso.');
     }
 
     public function generatePassword(Visitor $visitor)
     {
-        $this->visitorService->generatePassword($visitor);
+        if ($visitor->expires_at && $visitor->expires_at->isPast()) {
+            return redirect()->route('visitors.show', $visitor->id)->with('error', 'A data de expiração deve ser hoje ou posterior.');
+        }
+
+        $result = $this->visitorService->generatePassword($visitor, auth()->id());
+
+        if (!$result['success']) {
+            return redirect()->route('visitors.show', $visitor->id)->with('error', $result['error']);
+        }
+
         $visitor->refresh();
         
         $login = preg_replace('/\D/', '', $visitor->cpf);
         
-        return back()->with('success', "Nova senha gerada. Login: {$login} | Nova senha enviada para {$visitor->email}");
+        return redirect()->route('visitors.show', $visitor->id)->with('success', "Nova senha gerada. Login: {$login} | enviada para {$visitor->email}");
     }
 
     public function resendPassword(Visitor $visitor)
@@ -219,13 +228,13 @@ class VisitorsController extends Controller
         $result = $this->visitorService->resendPassword($visitor);
 
         if (!$result) {
-            return back()->with('error', 'Voucher não encontrado para este visitante.');
+            return redirect()->route('visitors.show', $visitor->id)->with('error', 'Voucher não encontrado para este visitante.');
         }
         
         $visitor->refresh();
         $login = preg_replace('/\D/', '', $visitor->cpf);
 
-        return back()->with('success', "Voucher reenviado. Login: {$login} | Senha enviada para {$visitor->email}");
+        return redirect()->route('visitors.show', $visitor->id)->with('success', "Voucher reenviado. Login: {$login} | Senha enviada para {$visitor->email}");
     }
 
     public function destroy(Visitor $visitor)

@@ -3,7 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import AppLayout from '@/layouts/app-layout';
 import visitors from '@/routes/visitors';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { useEffect } from 'react';
+import { shortenName } from '@/lib/utils';
 import { ArrowLeft, Edit, Mail, Calendar, Building, User, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
@@ -44,16 +46,34 @@ interface Props {
 export default function VisitorShow() {
     const { props } = usePage<Props>();
     const { visitor } = props;
+    const flash = props.flash;
+
+    const handleResend = () => {
+        console.log('CLICOU NO BOTÃO REENVIAR');
+        router.post(
+            visitors.resendPassword(visitor.id).url,
+            { preserveState: false }
+        );
+    };
+
+    useEffect(() => {
+        if (flash?.success) {
+            toast.success(flash.success);
+        }
+        if (flash?.error) {
+            toast.error(flash.error);
+        }
+    }, [flash?.success, flash?.error]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
         { title: 'Visitantes', href: visitors.index.get().url },
-        { title: visitor.name, href: `/visitors/${visitor.id}` },
+        { title: shortenName(visitor.name), href: `/visitors/${visitor.id}` },
     ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Visitante: ${visitor.name}`} />
+            <Head title={`Visitante: ${shortenName(visitor.name)}`} />
             <Toaster />
 
             <div className="container mx-auto py-6 max-w-3xl">
@@ -65,7 +85,7 @@ export default function VisitorShow() {
                             </Button>
                         </Link>
                         <div>
-                            <h1 className="text-2xl font-bold">{visitor.name}</h1>
+                            <h1 className="text-2xl font-bold">{shortenName(visitor.name)}</h1>
                             <p className="text-muted-foreground">Detalhes do visitante</p>
                         </div>
                     </div>
@@ -73,26 +93,7 @@ export default function VisitorShow() {
                         {visitor.email && (
                             <Button
                                 variant="outline"
-                                onClick={() =>
-                                    router.post(
-                                        visitors.resendPassword(visitor.id).url,
-                                        {},
-                                        {
-                                            onSuccess: (page: any) => {
-                                                const success = page.props.flash?.success;
-                                                if (success) {
-                                                    toast.success(success);
-                                                }
-                                            },
-                                            onError: (errors: any) => {
-                                                const firstError = Object.values(errors)[0];
-                                                if (firstError) {
-                                                    toast.error(String(firstError));
-                                                }
-                                            },
-                                        }
-                                    )
-                                }
+                                onClick={handleResend}
                             >
                                 <Send className="mr-2 h-4 w-4" />
                                 Reenviar

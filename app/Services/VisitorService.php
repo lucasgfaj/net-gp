@@ -114,7 +114,7 @@ class VisitorService implements VisitorInterface
         $voucher->expires_at = $visitor->expires_at;
         $voucher->save();
 
-        $this->activityLogService->logVisitorUpdated($visitor->id, $visitor->name, [], [], $visitor->created_by);
+        $this->activityLogService->logVisitorUpdated($visitor->id, $visitor->name, [], [], $userId);
 
         return $visitor->refresh();
     }
@@ -154,12 +154,11 @@ class VisitorService implements VisitorInterface
         $login = preg_replace('/\D/', '', $visitor->cpf);
         $passwordPlain = $this->generateRandomPassword();
 
-        $expiresAt = $visitor->expires_at ?? now()->addDays(7);
-        
-        if ($expiresAt->isPast()) {
-            $expiresAt = now()->addDays(7);
-            $visitor->update(['expires_at' => $expiresAt]);
+        if (!$visitor->expires_at || $visitor->expires_at->isPast()) {
+            return ['success' => false, 'error' => 'Informe uma data de expiração válida antes de gerar a senha.'];
         }
+
+        $expiresAt = $visitor->expires_at;
 
         $voucher = Voucher::firstOrNew(['visitor_id' => $visitor->id]);
         $isNewVoucher = !$voucher->exists;
@@ -192,7 +191,7 @@ class VisitorService implements VisitorInterface
             ));
         }
 
-        $this->activityLogService->logPasswordGenerated($visitor->id, $visitor->name, $visitor->created_by);
+        $this->activityLogService->logPasswordGenerated($visitor->id, $visitor->name, $userId);
 
         return ['success' => true, 'visitor' => $visitor];
     }

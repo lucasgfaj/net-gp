@@ -18,6 +18,7 @@ import { type BreadcrumbItem } from "@/types";
 import { Head, Link, router, usePage } from "@inertiajs/react";
 import debounce from "lodash.debounce";
 import { Edit, Trash2, SlidersHorizontal, FileSpreadsheet } from "lucide-react";
+import { shortenName } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
@@ -198,11 +199,11 @@ export default function VisitorsIndex() {
                             {items.map((v: any, index: number) => (
                                 <TableRow key={v.id}>
                                     <TableCell>{paginated.from + index}</TableCell>
-                                    <TableCell>{v.name}</TableCell>
+                                    <TableCell>{shortenName(v.name)}</TableCell>
                                     <TableCell>{v.cpf}</TableCell>
                                     <TableCell>{v.email || "—"}</TableCell>
                                     <TableCell>{v.type?.name || "—"}</TableCell>
-                                    <TableCell>{v.creator?.name || "—"}</TableCell>
+                                    <TableCell>{shortenName(v.creator?.name) || "—"}</TableCell>
                                     <TableCell>
                                         {new Date(v.created_at).toLocaleDateString("pt-BR")}
                                     </TableCell>

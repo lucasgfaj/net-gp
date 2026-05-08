@@ -18,6 +18,7 @@ import { Head, Link, router, usePage } from "@inertiajs/react";
 import debounce from "lodash.debounce";
 import { SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
+import { shortenName } from "@/lib/utils";
 
 export default function VouchersIndex() {
     const { props }: any = usePage();
@@ -177,8 +178,8 @@ export default function VouchersIndex() {
                                     <TableCell>{paginated.from + index}</TableCell>
                                     <TableCell>{v.login}</TableCell>
                                     {/* <TableCell>{v.password}</TableCell> */}
-                                    <TableCell>{v.visitor?.name || "—"}</TableCell>
-                                    <TableCell>{v.visitor?.creator?.name || "—"}</TableCell>
+                                    <TableCell>{shortenName(v.visitor?.name) || "—"}</TableCell>
+                                    <TableCell>{shortenName(v.visitor?.creator?.name) || "—"}</TableCell>
                                     <TableCell>{v.visitor?.creator?.department?.name || "—"}</TableCell>
                                     <TableCell>
                                         {v.expires_at

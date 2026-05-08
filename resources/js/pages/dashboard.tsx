@@ -5,6 +5,7 @@ import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { usePage, router, Link } from '@inertiajs/react';
+import { shortenName } from '@/lib/utils';
 import { UserPlus, Users, Calendar, Clock, AlertCircle, FileSpreadsheet, CheckCircle, XCircle } from 'lucide-react';
 import { useEffect } from 'react';
 
@@ -168,7 +169,7 @@ export default function Dashboard() {
                                         >
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-medium">
-                                                    {voucher.visitor?.name}
+                                                    {shortenName(voucher.visitor?.name)}
                                                 </span>
                                                 <span className="text-xs text-muted-foreground">
                                                     {voucher.visitor
@@ -210,7 +211,7 @@ export default function Dashboard() {
                                         >
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-medium">
-                                                    {visitor.name}
+                                                    {shortenName(visitor.name)}
                                                 </span>
                                                 <span className="text-xs text-muted-foreground">
                                                     {visitor.creator?.department
