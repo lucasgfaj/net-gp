@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/confrm-dialog';
 import AppLayout from '@/layouts/app-layout';
 import visitors from '@/routes/visitors';
 import { type BreadcrumbItem } from '@/types';
@@ -99,12 +100,19 @@ export default function VisitorShow() {
                                 Reenviar
                             </Button>
                         )}
-                        <Link href={visitors.edit.get(visitor.id)}>
-                            <Button>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Editar
-                            </Button>
-                        </Link>
+                        <ConfirmDialog
+                            title="Editar visitante"
+                            description="Deseja editar os dados deste visitante?"
+                            onConfirm={() => {
+                                router.get(visitors.edit.get(visitor.id).url);
+                            }}
+                            trigger={
+                                <Button>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Editar
+                                </Button>
+                            }
+                        />
                     </div>
                 </div>
 

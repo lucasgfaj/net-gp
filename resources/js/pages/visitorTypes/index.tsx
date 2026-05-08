@@ -46,10 +46,7 @@ export default function VisitorTypesIndex() {
     }, [search]);
 
 useEffect(() => {
-        const interval = setInterval(() => {
-            router.reload({ only: ['types'] });
-        }, 1000);
-        return () => clearInterval(interval);
+        // Sem auto-refresh constante - dados são estáticos
     }, []);
 
     const handleSort = (column: string) => {

@@ -196,7 +196,7 @@ class VisitorService implements VisitorInterface
         return ['success' => true, 'visitor' => $visitor];
     }
 
-    public function resendPassword(Visitor $visitor): bool
+    public function resendPassword(Visitor $visitor, int $userId): bool
     {
         $visitor->refresh();
         $voucher = Voucher::where('visitor_id', $visitor->id)->first();
@@ -212,6 +212,8 @@ class VisitorService implements VisitorInterface
                 expiresAt: $visitor->expires_at->format('d/m/Y H:i')
             ));
         }
+
+        $this->activityLogService->logPasswordResent($visitor->id, $visitor->name, $userId);
 
         return true;
     }

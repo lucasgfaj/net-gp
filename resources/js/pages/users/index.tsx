@@ -52,10 +52,7 @@ export default function UsersIndex() {
     }, [search]);
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            router.reload({ only: ['users'] });
-        }, 1000);
-        return () => clearInterval(interval);
+        // Sem auto-refresh constante - dados são estáticos
     }, []);
 
     const handleSort = (column: string) => {

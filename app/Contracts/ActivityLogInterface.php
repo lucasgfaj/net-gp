@@ -9,6 +9,7 @@ interface ActivityLogInterface
     public function logVisitorUpdated(int $visitorId, string $visitorName, array $old = [], array $new = [], int $userId): void;
     public function logVisitorDeleted(int $visitorId, string $visitorName, int $userId): void;
     public function logPasswordGenerated(int $visitorId, string $visitorName, int $userId): void;
+    public function logPasswordResent(int $visitorId, string $visitorName, int $userId): void;
     public function logVisitorExpired(int $visitorId, string $login): void;
     public function logLogin(): void;
     public function logDepartmentCreated(int $departmentId, string $departmentName, int $userId): void;

@@ -71,10 +71,10 @@ export default function ImportBatchShow() {
     ];
 
     useEffect(() => {
-        if (batch.status === 'processing' || batch.status === 'partial') {
+        if (batch.status === 'processing') {
             const interval = setInterval(() => {
                 reload();
-            }, 1000);
+            }, 2000);
             return () => clearInterval(interval);
         }
     }, [batch.status, reload]);

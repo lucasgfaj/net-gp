@@ -67,15 +67,18 @@ class VisitorImportService
         }
 
         $this->batch->refresh();
-        if ($this->batch->success_count > 0 && $this->batch->error_count == 0) {
+        
+        $totalProcessed = $this->batch->success_count + $this->batch->error_count;
+        
+        if ($this->batch->success_count > 0 && $this->batch->error_count == 0 && $totalProcessed >= $this->batch->total_rows) {
             $this->batch->update(['status' => 'completed']);
-        } elseif ($this->batch->error_count == $this->batch->total_rows) {
+        } elseif ($this->batch->error_count > 0 && $totalProcessed >= $this->batch->total_rows) {
             $this->batch->update(['status' => 'failed']);
-        } else {
-            $this->batch->update(['status' => 'partial']);
+        } elseif ($totalProcessed >= $this->batch->total_rows && $this->batch->success_count > 0) {
+            $this->batch->update(['status' => 'completed']);
         }
 
-        return $this->batch;
+        return $this->batch->refresh();
     }
 
     protected function validateRow(array $row, int $line): void

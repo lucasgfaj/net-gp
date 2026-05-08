@@ -54,11 +54,21 @@ export default function VisitorsIndex() {
     }, [search]);
 
     useEffect(() => {
+        const hasExpiringSoon = paginated?.data?.some((v: any) => {
+            if (!v.expires_at) return false;
+            const daysUntilExpiry = (new Date(v.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+            return daysUntilExpiry > 0 && daysUntilExpiry <= 7;
+        });
+        
+        if (!hasExpiringSoon) {
+            return;
+        }
+        
         const interval = setInterval(() => {
             router.reload({ only: ['visitors'] });
-        }, 1000);
+        }, 5000);
         return () => clearInterval(interval);
-    }, []);
+    }, [paginated?.data]);
 
     const handleSort = (column: string) => {
         const newDirection =

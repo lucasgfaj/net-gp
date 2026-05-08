@@ -12,6 +12,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Eye } from 'lucide-react';
+import { shortenName } from '@/lib/utils';
 
 interface Activity {
     id: number;
@@ -44,13 +45,13 @@ export default function ActivitiesIndex({ activities }: Props) {
 
             <div className="flex flex-col gap-4 p-4 sm:p-6">
                 <div className="overflow-x-auto rounded-xl border">
-                    <Table className="min-w-[800px] w-full">
+                    <Table className="min-w-[600px] sm:min-w-[800px] w-full">
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Data/Hora</TableHead>
-                                <TableHead>Usuario</TableHead>
-                                <TableHead>Ação</TableHead>
-                                <TableHead className="text-right">Detalhes</TableHead>
+                                <TableHead className="whitespace-nowrap">Data/Hora</TableHead>
+                                <TableHead className="whitespace-nowrap">Usuario</TableHead>
+                                <TableHead className="whitespace-nowrap">Ação</TableHead>
+                                <TableHead className="text-right whitespace-nowrap">Detalhes</TableHead>
                             </TableRow>
                         </TableHeader>
 
@@ -64,14 +65,14 @@ export default function ActivitiesIndex({ activities }: Props) {
                             ) : (
                                 items.map((activity: Activity) => (
                                     <TableRow key={activity.id}>
-                                        <TableCell className="whitespace-nowrap text-muted-foreground">
+                                        <TableCell className="whitespace-nowrap text-muted-foreground text-xs sm:text-sm">
                                             {activity.created_at}
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex flex-col">
-                                                <span className="font-medium">{activity.user || 'Sistema'}</span>
+                                                <span className="font-medium text-xs sm:text-sm">{shortenName(activity.user) || 'Sistema'}</span>
                                                 {activity.department && (
-                                                    <span className="text-xs text-muted-foreground">
+                                                    <span className="text-xs text-muted-foreground hidden sm:inline">
                                                         {activity.department}
                                                     </span>
                                                 )}
@@ -79,17 +80,17 @@ export default function ActivitiesIndex({ activities }: Props) {
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex flex-col gap-1">
-                                                <Badge variant="secondary" className="w-fit">
+                                                <Badge variant="secondary" className="w-fit text-xs">
                                                     {activity.action_label}
                                                 </Badge>
-                                                <span className="text-xs text-muted-foreground">
+                                                <span className="text-xs text-muted-foreground hidden sm:inline">
                                                     {activity.action}
                                                 </span>
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <Link href={`/activities/${activity.id}`}>
-                                                <Button variant="outline" size="sm">
+                                                <Button variant="outline" size="sm" className="h-8 w-8 p-0">
                                                     <Eye className="h-4 w-4" />
                                                 </Button>
                                             </Link>

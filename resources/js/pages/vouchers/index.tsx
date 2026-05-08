@@ -18,11 +18,23 @@ import { Head, Link, router, usePage } from "@inertiajs/react";
 import debounce from "lodash.debounce";
 import { SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { shortenName } from "@/lib/utils";
 
 export default function VouchersIndex() {
     const { props }: any = usePage();
     const { vouchers: paginated, filters, creators } = props;
+    const flash = props.flash;
+
+    useEffect(() => {
+        if (flash?.success) {
+            toast.success(flash.success);
+        }
+        if (flash?.error) {
+            toast.error(flash.error);
+        }
+    }, [flash?.success, flash?.error]);
 
     const [search, setSearch] = useState(filters?.search || "");
     const [showFilters, setShowFilters] = useState(false);
@@ -50,11 +62,21 @@ export default function VouchersIndex() {
     }, [search]);
 
     useEffect(() => {
+        const hasExpiringSoon = paginated?.data?.some((v: any) => {
+            if (!v.expires_at) return false;
+            const daysUntilExpiry = (new Date(v.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+            return daysUntilExpiry > 0 && daysUntilExpiry <= 7;
+        });
+        
+        if (!hasExpiringSoon) {
+            return;
+        }
+        
         const interval = setInterval(() => {
             router.reload({ only: ['vouchers'] });
-        }, 1000);
+        }, 5000);
         return () => clearInterval(interval);
-    }, []);
+    }, [paginated?.data]);
 
     const handleSort = (column: string) => {
         const newDirection =
@@ -94,6 +116,7 @@ export default function VouchersIndex() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Vouchers" />
+            <Toaster />
 
             <div className="flex flex-col gap-4 p-4 sm:p-6">
                 {/* HEADER */}
@@ -196,7 +219,7 @@ export default function VouchersIndex() {
                                                 router.post(
                                                     `/visitors/${v.visitor.id}/resend-password`,
                                                     {},
-                                                    { preserveScroll: true }
+                                                    { preserveState: false }
                                                 )
                                             }
                                             trigger={

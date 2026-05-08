@@ -27,13 +27,13 @@ export default function Pagination(props: PaginationProps) {
     }
 
     return (
-        <div className="flex justify-center mt-4 space-x-1">
+        <div className="flex flex-wrap justify-center mt-4 gap-1">
             {paginationLinks.map((link: LinkItem, index: number) => (
                 <Link
                     key={index}
                     href={link?.url || '#'}
-                    className={`px-3 py-1 border rounded text-sm ${
-                        link?.active ? 'bg-gray-200 font-semibold' : ''
+                    className={`px-2 py-1 border rounded text-xs sm:text-sm ${
+                        link?.active ? 'bg-secondary font-semibold' : ''
                     } ${!link?.url ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
                     dangerouslySetInnerHTML={{ __html: link?.label || '' }}
                 />

@@ -71,15 +71,20 @@ class ActivityLogService implements ActivityLogInterface
         }
     }
 
-    public function logPasswordGenerated(int $visitorId, string $visitorName, int $userId): void
+public function logPasswordGenerated(int $visitorId, string $visitorName, int $userId): void
     {
-        $user = User::find($userId);
-        if ($user) {
-            $this->logWithUser('visitor_password_generated', [
-                'visitor_id' => $visitorId,
-                'visitor_name' => $visitorName,
-            ], $user);
-        }
+        $this->logWithUser('visitor_password_generated', [
+            'visitor_id' => $visitorId,
+            'visitor_name' => $visitorName,
+        ], User::findOrFail($userId));
+    }
+
+    public function logPasswordResent(int $visitorId, string $visitorName, int $userId): void
+    {
+        $this->logWithUser('visitor_password_resent', [
+            'visitor_id' => $visitorId,
+            'visitor_name' => $visitorName,
+        ], User::findOrFail($userId));
     }
 
     public function logVisitorExpired(int $visitorId, string $login): void

@@ -30,11 +30,17 @@ export default function Dashboard() {
     } = props;
 
     useEffect(() => {
+        const hasProcessingImports = recentImports?.some((r: any) => r.status === 'processing');
+        
+        if (!hasProcessingImports) {
+            return;
+        }
+        
         const interval = setInterval(() => {
             router.reload({ only: ['stats', 'importStats', 'nextToExpire', 'alreadyExpired', 'recentActivities', 'recentImports'] });
-        }, 1000);
+        }, 3000);
         return () => clearInterval(interval);
-    }, []);
+    }, [recentImports]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
