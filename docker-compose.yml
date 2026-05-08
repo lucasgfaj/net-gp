@@ -31,7 +31,7 @@ services:
       context: .
       dockerfile: Dockerfile
     working_dir: /var/www
-    command: php artisan queue:work --daemon
+    command: /usr/bin/supervisord -c /var/www/docker/supervisor.ini
     volumes:
       - .:/var/www
     networks:

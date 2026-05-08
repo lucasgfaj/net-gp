@@ -30,5 +30,6 @@ yarn-error.log
 .ssh/*
 /logs/*.log
 /log/nginx/*.log
+/storage/logs/supervisor_*.log
 docker/ssh/*
 !docker/ssh/.gitkeep

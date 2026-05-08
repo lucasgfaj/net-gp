@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     make \
     openssh-client \
     git \
+    supervisor \
     && docker-php-ext-configure zip \
     && docker-php-ext-install pdo_pgsql zip \
     && docker-php-ext-configure ldap --with-libdir=lib/x86_64-linux-gnu \
