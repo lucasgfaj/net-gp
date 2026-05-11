@@ -57,7 +57,8 @@ class VisitorTypeController extends Controller
 
         $activityLogService->logVisitorTypeCreated(
             $visitorType->id,
-            $visitorType->name
+            $visitorType->name,
+            auth()->id()
         );
 
         return redirect()->route('visitorTypes.index');
@@ -89,7 +90,8 @@ class VisitorTypeController extends Controller
 
         $activityLogService->logVisitorTypeDeleted(
             $visitorType->id,
-            $typeName
+            $typeName,
+            auth()->id()
         );
 
         return redirect()->route('visitorTypes.index');

@@ -116,7 +116,7 @@ erDiagram
         string login "unique: CPF numeric"
         string password
         timestamp expires_at
-        bigint created_by FK "PENDENTE: adicionar"
+        bigint created_by FK "nullable"
         integer printer_id "nullable"
         string phone_private "nullable"
         string phone_public "nullable"

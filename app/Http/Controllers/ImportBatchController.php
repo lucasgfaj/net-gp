@@ -14,7 +14,17 @@ class ImportBatchController extends Controller
 {
     public function index(Request $request)
     {
-        $batches = ImportBatch::with('creator:id,name')
+        $user = auth()->user();
+
+        $query = ImportBatch::query();
+
+        if ($user->department_id !== 1) {
+            $query->whereHas('creator', fn ($q) =>
+                $q->where('department_id', $user->department_id)
+            );
+        }
+
+        $batches = $query->with('creator:id,name')
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
@@ -25,7 +35,13 @@ class ImportBatchController extends Controller
 
     public function show(ImportBatch $batch)
     {
-        $batch->load('creator:id,name');
+        $user = auth()->user();
+
+        $batch->load('creator:id,name,department_id');
+
+        if ($user->department_id !== 1 && $batch->creator->department_id !== $user->department_id) {
+            abort(403, 'Acesso negado');
+        }
 
         $visitors = Visitor::where('import_batch_id', $batch->id)
             ->with(['type:id,name', 'voucher'])
@@ -45,6 +61,14 @@ class ImportBatchController extends Controller
 
     public function destroy(ImportBatch $batch, SambaInterface $sambaService)
     {
+        $user = auth()->user();
+
+        $batch->load('creator:id,name,department_id');
+
+        if ($user->department_id !== 1 && $batch->creator->department_id !== $user->department_id) {
+            abort(403, 'Acesso negado');
+        }
+
         $visitors = Visitor::where('import_batch_id', $batch->id)->get();
 
         foreach ($visitors as $visitor) {
