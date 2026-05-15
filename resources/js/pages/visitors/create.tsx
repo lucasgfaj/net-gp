@@ -13,13 +13,13 @@ import AppLayout from '@/layouts/app-layout';
 import visitors from '@/routes/visitors';
 import { type BreadcrumbItem } from '@/types';
 import { maskCPF, maskPhone } from '@/utils/masks';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 
 
-export default function CreateVisitor({ types }: any) {
+export default function CreateVisitor({ types }: { types: Array<{ id: number; name: string }> }) {
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Visitantes', href: visitors.index.get().url },
@@ -56,13 +56,13 @@ export default function CreateVisitor({ types }: any) {
         }
 
         post(visitors.store.post().url, {
-            onSuccess: (page: any) => {
+            onSuccess: (page) => {
                 const success = page.props.flash?.success;
                 if (success) {
                     toast.success(success);
                 }
             },
-            onError: (errors: any) => {
+            onError: (errors) => {
                 const firstError = Object.values(errors)[0];
                 if (firstError) {
                     toast.error(String(firstError));
@@ -166,7 +166,7 @@ export default function CreateVisitor({ types }: any) {
                                 </SelectTrigger>
 
                                 <SelectContent className="max-h-60 overflow-y-auto">
-                                    {types.map((t: any) => (
+                                    {types.map((t) => (
                                         <SelectItem key={t.id} value={String(t.id)}>
                                             {t.name}
                                         </SelectItem>

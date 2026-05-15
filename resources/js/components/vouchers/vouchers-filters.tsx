@@ -9,12 +9,12 @@ import {
 } from "@/components/ui/select";
 
 interface VouchersFiltersProps {
-    filters: any;
+    filters: Record<string, unknown>;
     creators: Array<{ id: number; name: string }>;
-    onChange: (filters: any) => void;
+    onChange: (filters: Record<string, unknown>) => void;
     onClear: () => void;
     userDepartmentId: number;
-    departments: any;
+    departments: Array<{ id: number; name: string }>;
 }
 
 export default function VouchersFilters({
@@ -33,7 +33,7 @@ export default function VouchersFilters({
     );
 
     function applyFilters() {
-        const params: any = {};
+        const params: Record<string, unknown> = {};
 
         if (creatorId !== "all") params.creator_id = creatorId;
         if (orderExpire !== "none") params.expire_sort = orderExpire;
@@ -113,7 +113,7 @@ export default function VouchersFilters({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="none">Todos</SelectItem>
-                            {departments.map((d: any) => (
+                            {departments.map((d) => (
                                 <SelectItem key={d.id} value={String(d.id)}>
                                     {d.name}
                                 </SelectItem>

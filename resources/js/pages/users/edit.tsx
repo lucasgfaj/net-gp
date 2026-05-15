@@ -13,7 +13,21 @@ import users from '@/routes/users';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function EditUsers({ user, authUser }: any) {
+interface User {
+    id: number;
+    role: string;
+    active: boolean | string;
+    name: string;
+    email: string;
+    username: string;
+    department: { name: string };
+}
+
+interface AuthUser {
+    id: number;
+}
+
+export default function EditUsers({ user, authUser }: { user: User; authUser: AuthUser }) {
     const isSelf = Number(authUser.id) === Number(user.id);
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -21,7 +35,7 @@ export default function EditUsers({ user, authUser }: any) {
         { title: 'Editar', href: '#' },
     ];
 
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, put, errors } = useForm({
         role: user.role,
         active: user.active ? '1' : '0',
     });

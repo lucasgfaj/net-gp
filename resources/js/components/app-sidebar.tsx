@@ -91,7 +91,7 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
-    const { auth }: any = usePage().props;
+    const { auth } = usePage().props as { auth: { user: { role: string } } };
     const role = auth.user.role;
 
     const filterMainNavItems = mainNavItems.filter((item) => {

@@ -17,8 +17,20 @@ import React, { useEffect } from 'react';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 
-export default function EditVisitor({ visitor, types, voucher }: any) {
-    const { props } = usePage<any>();
+interface Visitor {
+    id: number;
+    name: string;
+    cpf: string;
+    phone?: string;
+    email?: string;
+    type_id: number;
+    school?: string;
+    expires_at?: string;
+    enabled: boolean;
+}
+
+export default function EditVisitor({ visitor, types }: { visitor: Visitor; types: Array<{ id: number; name: string }> }) {
+    const { props } = usePage<{ flash: { success?: string; error?: string } }>();
     const flash = props.flash;
 
     useEffect(() => {
@@ -66,13 +78,13 @@ export default function EditVisitor({ visitor, types, voucher }: any) {
 
         put(visitors.update({ visitor: visitor.id }).url, {
             preserveScroll: true,
-            onSuccess: (page: any) => {
+            onSuccess: (page) => {
                 const success = page.props.flash?.success;
                 if (success) {
                     toast.success(success);
                 }
             },
-            onError: (errors: any) => {
+            onError: (errors) => {
                 const firstError = Object.values(errors)[0];
                 if (firstError) {
                     toast.error(String(firstError));
@@ -138,7 +150,7 @@ export default function EditVisitor({ visitor, types, voucher }: any) {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {types.map((t: any) => (
+                                    {types.map((t) => (
                                         <SelectItem key={t.id} value={String(t.id)}>
                                             {t.name}
                                         </SelectItem>

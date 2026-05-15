@@ -7,7 +7,7 @@ import AppLayout from '@/layouts/app-layout';
 import importBatches from '@/routes/import-batches';
 import { type BreadcrumbItem } from '@/types';
 import { Head, usePage, router, Link } from '@inertiajs/react';
-import { Trash2, Mail, MailOpen, ArrowLeft, FileSpreadsheet, AlertCircle, RefreshCw } from 'lucide-react';
+import { Trash2, ArrowLeft, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import { shortenName } from '@/lib/utils';
 import { useEffect } from 'react';
 

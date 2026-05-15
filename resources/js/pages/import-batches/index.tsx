@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Pagination from '@/components/pagination';
 import AppLayout from '@/layouts/app-layout';
@@ -8,7 +8,7 @@ import importBatches from '@/routes/import-batches';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, usePage, router } from '@inertiajs/react';
-import { Eye, FileSpreadsheet, CheckCircle, XCircle, Clock, Calendar, User } from 'lucide-react';
+import { Eye, FileSpreadsheet } from 'lucide-react';
 import { useEffect } from 'react';
 import { shortenName } from '@/lib/utils';
 
@@ -46,7 +46,7 @@ export default function ImportBatchesIndex() {
     const { batches } = props;
 
     useEffect(() => {
-        const hasProcessing = batches.data.some((b: any) => b.status === 'processing');
+        const hasProcessing = batches.data.some((b: ImportBatch) => b.status === 'processing');
         
         if (!hasProcessing) {
             return;

@@ -6,7 +6,13 @@ import visitorTypes from '@/routes/visitorTypes';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function EditVisitorType({ type }: any) {
+interface VisitorType {
+    id: number;
+    name: string;
+    description?: string;
+}
+
+export default function EditVisitorType({ type }: { type: VisitorType }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Tipos de Visitantes', href: visitorTypes.index.get().url },
         { title: 'Editar', href: '#' },

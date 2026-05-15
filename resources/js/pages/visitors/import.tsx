@@ -9,7 +9,7 @@ import { Form, Head, Link } from '@inertiajs/react';
 import visitorImports from '@/routes/visitors/import/index';
 import visitors from '@/routes/visitors';
 import { type BreadcrumbItem } from '@/types';
-import { FileUp, Download, ArrowLeft, FileSpreadsheet, Upload, FileText } from 'lucide-react';
+import { FileUp, ArrowLeft, FileSpreadsheet, Upload, FileText } from 'lucide-react';
 import { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 

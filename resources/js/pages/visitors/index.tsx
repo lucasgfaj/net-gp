@@ -23,8 +23,37 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 
+interface Visitor {
+    id: number;
+    name: string;
+    cpf: string;
+    email?: string;
+    type?: { name: string };
+    creator?: { name: string };
+    created_at: string;
+    expires_at?: string;
+}
+
+interface PageProps {
+    visitors: {
+        data: Visitor[];
+        from: number;
+        total: number;
+        per_page: number;
+        links: Array<{ url: string | null; label: string; active: boolean }>;
+    };
+    filters: {
+        search?: string;
+        sort?: string;
+        direction?: string;
+    };
+    types: unknown;
+    user_department_id: unknown;
+    departments: unknown;
+}
+
 export default function VisitorsIndex() {
-    const { props }: any = usePage();
+    const { props } = usePage<{ props: PageProps }>();
     const { visitors: paginated, filters, types } = props;
 
     const [search, setSearch] = useState(filters?.search || "");
@@ -51,10 +80,10 @@ export default function VisitorsIndex() {
 
     useEffect(() => {
         if (typing) liveSearch(search);
-    }, [search]);
+    }, [search, typing, liveSearch]);
 
     useEffect(() => {
-        const hasExpiringSoon = paginated?.data?.some((v: any) => {
+        const hasExpiringSoon = paginated?.data?.some((v) => {
             if (!v.expires_at) return false;
             const daysUntilExpiry = (new Date(v.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
             return daysUntilExpiry > 0 && daysUntilExpiry <= 7;
@@ -86,7 +115,7 @@ export default function VisitorsIndex() {
         );
     };
 
-    const handleFilterChange = (newFilters: any) => {
+    const handleFilterChange = (newFilters: Record<string, unknown>) => {
         setCurrentFilters(newFilters);
         router.get(visitors.index.get().url, newFilters, {
             preserveState: false,
@@ -206,7 +235,7 @@ export default function VisitorsIndex() {
                                 </TableRow>
                             )}
 
-                            {items.map((v: any, index: number) => (
+                            {items.map((v, index: number) => (
                                 <TableRow key={v.id}>
                                     <TableCell>{paginated.from + index}</TableCell>
                                     <TableCell>{shortenName(v.name)}</TableCell>
@@ -228,13 +257,13 @@ export default function VisitorsIndex() {
                                             onConfirm={() =>
                                                 router.delete(visitors.destroy(v.id).url, {
                                                     preserveScroll: true,
-                                                    onSuccess: (page: any) => {
+                                                    onSuccess: (page) => {
                                                         const success = page.props.flash?.success;
                                                         if (success) {
                                                             toast.success(success);
                                                         }
                                                     },
-                                                    onError: (errors: any) => {
+                                                    onError: (errors) => {
                                                         const firstError = Object.values(errors)[0];
                                                         if (firstError) {
                                                             toast.error(String(firstError));

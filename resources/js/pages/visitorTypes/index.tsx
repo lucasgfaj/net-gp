@@ -18,8 +18,28 @@ import debounce from 'lodash.debounce';
 import { Edit, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+interface VisitorType {
+    id: number;
+    name: string;
+}
+
+interface PageProps {
+    visitorTypes: {
+        data: VisitorType[];
+        from: number;
+        total: number;
+        per_page: number;
+        links: Array<{ url: string | null; label: string; active: boolean }>;
+    };
+    filters: {
+        search?: string;
+        sort?: string;
+        direction?: string;
+    };
+}
+
 export default function VisitorTypesIndex() {
-    const { props }: any = usePage();
+    const { props } = usePage<{ props: PageProps }>();
     const { visitorTypes: paginated, filters } = props;
 
     const [search, setSearch] = useState(filters?.search || '');
@@ -43,11 +63,7 @@ export default function VisitorTypesIndex() {
 
     useEffect(() => {
         if (typing) liveSearch(search);
-    }, [search]);
-
-useEffect(() => {
-        // Sem auto-refresh constante - dados são estáticos
-    }, []);
+    }, [search, typing, liveSearch]);
 
     const handleSort = (column: string) => {
         const newDirection =
@@ -105,7 +121,7 @@ useEffect(() => {
                         </TableHeader>
 
                         <TableBody>
-                            {items.map((d: any, index: number) => (
+                            {items.map((d, index: number) => (
                                 <TableRow key={d.id}>
                                     <TableCell>
                                         {paginated.from + index}

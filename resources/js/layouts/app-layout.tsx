@@ -9,8 +9,13 @@ interface AppLayoutProps {
     breadcrumbs?: BreadcrumbItem[]
 }
 
+interface PageProps {
+    flash?: { success?: string; error?: string };
+    errors?: { error?: string };
+}
+
 export default function AppLayout({ children, breadcrumbs, ...props }: AppLayoutProps) {
-    const { flash, errors }: any = usePage()
+    const { flash, errors } = usePage<PageProps>()
 
     useEffect(() => {
         if (flash?.success) {

@@ -1,4 +1,3 @@
-import { ConfirmDialog } from '@/components/confrm-dialog';
 import Pagination from '@/components/pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,11 +15,35 @@ import users from '@/routes/users';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import debounce from 'lodash.debounce';
-import { Edit, Trash2, SlidersHorizontal } from 'lucide-react';
+import { Edit, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+interface User {
+    id: number;
+    name: string;
+    email: string;
+    department?: { name: string };
+    role: string;
+}
+
+interface PageProps {
+    users: {
+        data: User[];
+        from: number;
+        total: number;
+        per_page: number;
+        links: Array<{ url: string | null; label: string; active: boolean }>;
+    };
+    filters: {
+        search?: string;
+        sort?: string;
+        direction?: string;
+    };
+    departments: unknown;
+}
+
 export default function UsersIndex() {
-    const { props }: any = usePage();
+    const { props } = usePage<{ props: PageProps }>();
     const { users: paginated, filters, departments } = props;
 
     const [search, setSearch] = useState(filters?.search || '');
@@ -49,11 +72,7 @@ export default function UsersIndex() {
 
     useEffect(() => {
         if (typing) liveSearch(search);
-    }, [search]);
-
-    useEffect(() => {
-        // Sem auto-refresh constante - dados são estáticos
-    }, []);
+    }, [search, typing, liveSearch]);
 
     const handleSort = (column: string) => {
         const newDirection =
@@ -177,7 +196,7 @@ export default function UsersIndex() {
                                 </TableRow>
                             )}
 
-                            {items.map((d: any, index: number) => (
+                            {items.map((d, index: number) => (
                                 <TableRow key={d.id}>
                                     <TableCell>
                                         {paginated.from + index}

@@ -12,9 +12,8 @@ import {
 } from "@/components/ui/table";
 import VouchersFilters from "@/components/vouchers/vouchers-filters";
 import AppLayout from "@/layouts/app-layout";
-import visitors from "@/routes/visitors";
 import { type BreadcrumbItem } from "@/types";
-import { Head, Link, router, usePage } from "@inertiajs/react";
+import { Head, router, usePage } from "@inertiajs/react";
 import debounce from "lodash.debounce";
 import { SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -22,8 +21,47 @@ import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { shortenName } from "@/lib/utils";
 
+interface Voucher {
+    id: number;
+    login: string;
+    expires_at?: string;
+    visitor?: {
+        id: number;
+        name: string;
+        email: string;
+        creator?: {
+            name: string;
+            department?: {
+                name: string;
+            };
+        };
+    };
+}
+
+interface PageProps {
+    vouchers: {
+        data: Voucher[];
+        from: number;
+        total: number;
+        per_page: number;
+        links: Array<{ url: string | null; label: string; active: boolean }>;
+    };
+    filters: {
+        search?: string;
+        sort?: string;
+        direction?: string;
+    };
+    creators: unknown;
+    flash?: {
+        success?: string;
+        error?: string;
+    };
+    user_department_id: unknown;
+    departments: unknown;
+}
+
 export default function VouchersIndex() {
-    const { props }: any = usePage();
+    const { props } = usePage<{ props: PageProps }>();
     const { vouchers: paginated, filters, creators } = props;
     const flash = props.flash;
 
@@ -59,10 +97,10 @@ export default function VouchersIndex() {
 
     useEffect(() => {
         if (typing) liveSearch(search);
-    }, [search]);
+    }, [search, typing, liveSearch]);
 
     useEffect(() => {
-        const hasExpiringSoon = paginated?.data?.some((v: any) => {
+        const hasExpiringSoon = paginated?.data?.some((v) => {
             if (!v.expires_at) return false;
             const daysUntilExpiry = (new Date(v.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
             return daysUntilExpiry > 0 && daysUntilExpiry <= 7;
@@ -94,7 +132,7 @@ export default function VouchersIndex() {
         );
     };
 
-    const handleFilterChange = (newFilters: any) => {
+    const handleFilterChange = (newFilters: Record<string, unknown>) => {
         setCurrentFilters(newFilters);
         router.get("/vouchers", newFilters, {
             preserveState: false,
@@ -196,7 +234,7 @@ export default function VouchersIndex() {
                                 </TableRow>
                             )}
 
-                            {items.map((v: any, index: number) => (
+                            {items.map((v, index: number) => (
                                 <TableRow key={v.id}>
                                     <TableCell>{paginated.from + index}</TableCell>
                                     <TableCell>{v.login}</TableCell>

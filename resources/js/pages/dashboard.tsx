@@ -1,12 +1,11 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { usePage, router, Link } from '@inertiajs/react';
 import { shortenName } from '@/lib/utils';
-import { UserPlus, Users, Calendar, Clock, AlertCircle, FileSpreadsheet, CheckCircle, XCircle } from 'lucide-react';
+import { Users, Calendar, Clock, AlertCircle, FileSpreadsheet, CheckCircle, XCircle } from 'lucide-react';
 import { useEffect } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -16,13 +15,84 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+interface DashboardStats {
+    totalVisitors: number;
+    totalThisMonth: number;
+    expiredVisitors: number;
+}
+
+interface DashboardImportStats {
+    totalBatches: number;
+    totalImported: number;
+    totalErrors: number;
+    totalSuccess: number;
+}
+
+interface DashboardDept {
+    id: number;
+    name: string;
+    count: number;
+}
+
+interface DashboardVoucher {
+    id: number;
+    login: string;
+    expires_at: string;
+    visitor?: {
+        name: string;
+        creator?: {
+            department?: {
+                name: string;
+            };
+        };
+    };
+}
+
+interface DashboardVisitor {
+    id: number;
+    name: string;
+    expires_at: string;
+    creator?: {
+        department?: {
+            name: string;
+        };
+    };
+}
+
+interface DashboardActivity {
+    id: number;
+    action: string;
+    user: string;
+    user_role: string;
+    department?: string;
+    created_at: string;
+}
+
+interface DashboardImport {
+    id: number;
+    filename: string;
+    total: number;
+    creator: string;
+    status: string;
+    created_at: string;
+}
+
+interface DashboardPageProps {
+    stats: DashboardStats;
+    importStats: DashboardImportStats;
+    visitorsByDepartment: DashboardDept[];
+    nextToExpire: DashboardVoucher[];
+    alreadyExpired: DashboardVisitor[];
+    recentActivities: DashboardActivity[];
+    recentImports: DashboardImport[];
+}
+
 export default function Dashboard() {
-    const { props }: any = usePage();
+    const { props } = usePage<{ props: DashboardPageProps }>();
     const {
         stats,
         importStats,
         visitorsByDepartment,
-        visitorsByMonth,
         nextToExpire,
         alreadyExpired,
         recentActivities,
@@ -30,7 +100,7 @@ export default function Dashboard() {
     } = props;
 
     useEffect(() => {
-        const hasProcessingImports = recentImports?.some((r: any) => r.status === 'processing');
+        const hasProcessingImports = recentImports?.some((r) => r.status === 'processing');
         
         if (!hasProcessingImports) {
             return;
@@ -134,7 +204,7 @@ export default function Dashboard() {
                             {visitorsByDepartment?.length > 0 ? (
                                 <div className="space-y-2">
                                     {visitorsByDepartment.map(
-                                        (dept: any) => (
+                                        (dept) => (
                                             <div
                                                 key={dept.id}
                                                 className="flex items-center justify-between"
@@ -168,7 +238,7 @@ export default function Dashboard() {
                         <CardContent>
                             {nextToExpire?.length > 0 ? (
                                 <div className="space-y-2">
-                                    {nextToExpire.map((voucher: any) => (
+                                    {nextToExpire.map((voucher) => (
                                         <div
                                             key={voucher.id}
                                             className="flex items-center justify-between"
@@ -210,7 +280,7 @@ export default function Dashboard() {
                         <CardContent>
                             {alreadyExpired?.length > 0 ? (
                                 <div className="space-y-2">
-                                    {alreadyExpired.map((visitor: any) => (
+                                    {alreadyExpired.map((visitor) => (
                                         <div
                                             key={visitor.id}
                                             className="flex items-center justify-between"
@@ -249,7 +319,7 @@ export default function Dashboard() {
                         <CardContent>
                             {recentActivities?.length > 0 ? (
                                 <div className="space-y-2">
-                                    {recentActivities.map((activity: any) => (
+                                    {recentActivities.map((activity) => (
                                         <Link
                                             key={activity.id}
                                             href={`/activities/${activity.id}`}
@@ -299,7 +369,7 @@ export default function Dashboard() {
                         <CardContent>
                             {recentImports?.length > 0 ? (
                                 <div className="space-y-2">
-                                    {recentImports.map((batch: any) => (
+                                    {recentImports.map((batch) => (
                                         <div
                                             key={batch.id}
                                             className="flex items-center justify-between hover:bg-muted/50 p-2 rounded"
