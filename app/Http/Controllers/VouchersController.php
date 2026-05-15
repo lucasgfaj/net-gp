@@ -39,7 +39,7 @@ class VouchersController extends Controller
         $today = Carbon::today();
         $paginator->getCollection()->transform(function ($voucher) use ($today) {
             $voucher->is_expired = $voucher->expires_at
-                ? $voucher->expires_at->startOfDay()->lt($today)
+                ? $voucher->expires_at->lt($today)
                 : false;
             return $voucher;
         });

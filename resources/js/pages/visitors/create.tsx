@@ -16,8 +16,11 @@ import { maskCPF, maskPhone } from '@/utils/masks';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
+import { Toaster } from '@/components/ui/sonner';
 
-export default function CreateVisitor({ types }: any) {
+
+export default function CreateVisitor({ types }: { types: Array<{ id: number; name: string }> }) {
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Visitantes', href: visitors.index.get().url },
         { title: 'Criar', href: '#' },
@@ -38,7 +41,7 @@ export default function CreateVisitor({ types }: any) {
         e.preventDefault();
 
         if (!data.expires_at) {
-            toast("Informe uma data de expiração.");
+            toast.error("Informe uma data de expiração.");
             return;
         }
 
@@ -48,11 +51,24 @@ export default function CreateVisitor({ types }: any) {
         const selectedDate = new Date(data.expires_at + "T00:00:00");
 
         if (selectedDate < today) {
-            toast("A data de expiração não pode ser menor que hoje.");
+            toast.error("A data de expiração não pode ser menor que hoje.");
             return;
         }
 
-        post(visitors.store.post().url);
+        post(visitors.store.post().url, {
+            onSuccess: (page) => {
+                const success = page.props.flash?.success;
+                if (success) {
+                    toast.success(success);
+                }
+            },
+            onError: (errors) => {
+                const firstError = Object.values(errors)[0];
+                if (firstError) {
+                    toast.error(String(firstError));
+                }
+            },
+        });
     };
 
     useEffect(() => {
@@ -71,6 +87,7 @@ export default function CreateVisitor({ types }: any) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Criar Visitante" />
+            <Toaster />
 
             <div className="w-full p-4 md:p-6">
                 <h1 className="mb-6 text-2xl font-semibold">Criar Visitante</h1>
@@ -86,6 +103,7 @@ export default function CreateVisitor({ types }: any) {
                                 onChange={(e) =>
                                     setData('name', e.target.value)
                                 }
+                               placeholder="Nome"
                             />
                             <FieldError message={errors.name} />
                         </div>
@@ -96,6 +114,7 @@ export default function CreateVisitor({ types }: any) {
                                 name="cpf"
                                 value={maskCPF(data.cpf)}
                                 onChange={(e) => setData('cpf', e.target.value)}
+                                placeholder="11023843912"
                             />
                             <FieldError message={errors.cpf} />
 
@@ -116,7 +135,7 @@ export default function CreateVisitor({ types }: any) {
                                     setData('phone', maskPhone(e.target.value));
                                 }}
                                 inputMode="numeric"
-                                placeholder="(42) 98868-7949"
+                                placeholder="(42) 92361-7241"
                             />
                             <FieldError message={errors.phone} />
                         </div>
@@ -127,6 +146,7 @@ export default function CreateVisitor({ types }: any) {
                                 name="email"
                                 type="email"
                                 value={data.email}
+                                placeholder="usuarios@email.com"
                                 onChange={(e) =>
                                     setData('email', e.target.value)
                                 }
@@ -136,40 +156,36 @@ export default function CreateVisitor({ types }: any) {
 
                         <div>
                             <Label>Tipo</Label>
+
                             <Select
                                 value={String(data.type_id)}
-                                onValueChange={(value) =>
-                                    setData('type_id', value)
-                                }
+                                onValueChange={(value) => setData('type_id', value)}
                             >
-                                <SelectTrigger
-                                    className="w-full"
-                                    name="type_id"
-                                >
-                                    <SelectValue placeholder="Selecione" />
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Selecione o tipo" />
                                 </SelectTrigger>
-                                <SelectContent>
-                                    {types.map((t: any) => (
-                                        <SelectItem
-                                            key={t.id}
-                                            value={String(t.id)}
-                                        >
+
+                                <SelectContent className="max-h-60 overflow-y-auto">
+                                    {types.map((t) => (
+                                        <SelectItem key={t.id} value={String(t.id)}>
                                             {t.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
+
                             <FieldError message={errors.type_id} />
                         </div>
 
                         <div>
-                            <Label>Instituição</Label>
+                            <Label>Observação</Label>
                             <Input
                                 name="school"
                                 value={data.school}
                                 onChange={(e) =>
                                     setData('school', e.target.value)
                                 }
+                                placeholder="Observação"
                             />
                             <FieldError message={errors.school} />
                         </div>
@@ -192,28 +208,7 @@ export default function CreateVisitor({ types }: any) {
                             </p>
                         </div>
 
-                        {/* STATUS */}
-                        <div>
-                            <Label>Status</Label>
-                            <Select
-                                value={data.enabled ? '1' : '0'}
-                                onValueChange={(value) =>
-                                    setData('enabled', value === '1')
-                                }
-                            >
-                                <SelectTrigger
-                                    className="w-full"
-                                    name="enabled"
-                                >
-                                    <SelectValue placeholder="Selecione" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="1">Ativo</SelectItem>
-                                    <SelectItem value="0">Inativo</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FieldError message={errors.enabled} />
-                        </div>
+                        
                     </div>
 
                     <div className="flex gap-3 pt-4">

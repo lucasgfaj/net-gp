@@ -16,3 +16,16 @@ export function isSameUrl(
 export function resolveUrl(url: NonNullable<InertiaLinkProps['href']>): string {
     return typeof url === 'string' ? url : url.url;
 }
+
+export function shortenName(fullName: string): string {
+    if (!fullName) return '';
+    
+    const parts = fullName.trim().split(/\s+/);
+    
+    if (parts.length === 1) return parts[0];
+    
+    const firstName = parts[0];
+    const lastName = parts[parts.length - 1];
+    
+    return `${firstName} ${lastName}`;
+}

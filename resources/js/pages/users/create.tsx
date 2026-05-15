@@ -13,7 +13,7 @@ import users from '@/routes/users';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function CreateUser({ departments }: any) {
+export default function CreateUser({ departments }: { departments: Array<{ id: number; name: string }> }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Usuários', href: users.index.get().url },
         { title: 'Criar', href: '#' },
@@ -121,7 +121,7 @@ export default function CreateUser({ departments }: any) {
                                 <SelectValue placeholder="Selecione o departamento" />
                             </SelectTrigger>
                             <SelectContent>
-                                {departments.map((d: any) => (
+                                {departments.map((d) => (
                                     <SelectItem key={d.id} value={String(d.id)}>
                                         {d.name}
                                     </SelectItem>

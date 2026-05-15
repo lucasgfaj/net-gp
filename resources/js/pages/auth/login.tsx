@@ -1,28 +1,30 @@
 import InputError from '@/components/input-error';
-import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
-import { register } from '@/routes';
 import { store } from '@/routes/login';
-import { request } from '@/routes/password';
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, usePage } from '@inertiajs/react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
+
 interface LoginProps {
     status?: string;
-    canResetPassword: boolean;
-    canRegister: boolean;
 }
+
+interface PageProps {
+    flash?: {
+        error?: string;
+    };
+}
+
 export default function Login({
     status,
-    canResetPassword,
-    canRegister,
 }: LoginProps) {
-
+    const { props } = usePage<PageProps>();
+    const flashError = props.flash?.error;
     const [showPassword, setShowPassword] = useState(false);
 
     return (
@@ -50,9 +52,8 @@ export default function Login({
                                     autoFocus
                                     tabIndex={1}
                                     autoComplete="username"
-                                    pattern="^[a-z]+(\.[a-z]+)?$"
                                 />
-                                <InputError message={errors.email} />
+                                <InputError message={errors.email || flashError} />
                             </div>
 
                             <div className="grid gap-2">
@@ -106,19 +107,11 @@ export default function Login({
                             </Button>
                         </div>
 
-                        {false && (
-                            <div className="text-center text-sm text-muted-foreground">
-                                Não possui uma conta?{' '}
-                                <TextLink href={register()} tabIndex={5}>
-                                    Criar conta
-                                </TextLink>
-                            </div>
-                        )}
                     </>
                 )}
             </Form>
 
-            {status && (
+            {!!status && (
                 <div className="mb-4 text-center text-sm font-medium text-green-600">
                     {status}
                 </div>

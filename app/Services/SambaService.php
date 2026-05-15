@@ -2,40 +2,37 @@
 
 namespace App\Services;
 
+use App\Contracts\SambaInterface;
 use Illuminate\Support\Facades\Log;
 use phpseclib3\Net\SSH2;
 use phpseclib3\Crypt\PublicKeyLoader;
 
-class SambaService
+class SambaService implements SambaInterface
 {
     protected string $host;
     protected string $user;
-    protected string $keyPath; 
+    protected string $keyPath;
     protected int $port;
+    protected bool $debug = true;
 
-    public function __construct(){
+    public function __construct()
+    {
         $this->host = config('app.ip_smb');
         $this->user = config('app.user_smb');
-        $this->keyPath = config('app.path_ssh_smb');
+        $this->keyPath = config('app.path_ssh_smb'); 
         $this->port = (int) config('app.port_smb');
     }
-
-    protected bool $debug = true;
 
     protected function connect(): SSH2
     {
         $ssh = new SSH2($this->host, $this->port);
 
-        try {
-            $key = PublicKeyLoader::loadPrivateKey(file_get_contents($this->keyPath));
-        } catch (\Throwable $e) {
-            Log::error('Falha ao carregar chave privada SSH', ['exception' => $e->getMessage()]);
-            throw new \Exception('Falha ao carregar chave SSH');
-        }
+        $key = PublicKeyLoader::loadPrivateKey(
+            file_get_contents($this->keyPath)
+        );
 
         if (!$ssh->login($this->user, $key)) {
-            Log::error('Falha na autenticação SSH com phpseclib');
-            throw new \Exception('Falha na autenticação SSH');
+            throw new \Exception('Falha autenticação SSH phpseclib');
         }
 
         return $ssh;
@@ -46,12 +43,11 @@ class SambaService
         try {
             $ssh = $this->connect();
 
-            $output = $ssh->exec("bash -lc " . escapeshellarg($cmd));
+            $output = $ssh->exec($cmd);
             $exitCode = $ssh->getExitStatus();
 
-
-            if ($this->debug === true) {
-                Log::info('DEBUG SAMBA', [
+            if ($this->debug) {
+                Log::info('DEBUG SAMBA PHPSECLIB', [
                     'command' => $cmd,
                     'exit_code' => $exitCode,
                     'output' => $output,
@@ -62,7 +58,7 @@ class SambaService
                 return [
                     'success' => false,
                     'exit_code' => $exitCode,
-                    'error' => $output ?: 'Erro desconhecido',
+                    'error' => $output,
                 ];
             }
 
@@ -71,7 +67,7 @@ class SambaService
                 'output' => $output,
             ];
         } catch (\Throwable $e) {
-            Log::error('Erro ao executar comando Samba', ['exception' => $e->getMessage()]);
+            Log::error('Erro SSH phpseclib', ['error' => $e->getMessage()]);
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -81,33 +77,45 @@ class SambaService
 
     public function createSambaUser(string $username, string $password): array
     {
-        $cmd = sprintf(
+        if ($this->userExists($username)) {
+            return [
+                'success' => false,
+                'exit_code' => 255,
+                'error' => 'User already exists in SAMBA',
+            ];
+        }
+
+        return $this->execute(sprintf(
             'sudo /usr/bin/samba-tool user create %s %s',
             escapeshellarg($username),
             escapeshellarg($password)
-        );
+        ));
+    }
 
-        return $this->execute($cmd);
+    public function userExists(string $username): bool
+    {
+        $result = $this->execute(sprintf(
+            'sudo /usr/bin/samba-tool user list | grep -w %s',
+            escapeshellarg($username)
+        ));
+
+        return $result['success'] && !empty(trim($result['output']));
     }
 
     public function updateSambaUserPassword(string $username, string $newPassword): array
     {
-        $cmd = sprintf(
+        return $this->execute(sprintf(
             'sudo /usr/bin/samba-tool user setpassword %s --newpassword=%s',
             escapeshellarg($username),
             escapeshellarg($newPassword)
-        );
-
-        return $this->execute($cmd);
+        ));
     }
 
     public function deleteSambaUser(string $username): array
     {
-        $cmd = sprintf(
+        return $this->execute(sprintf(
             'sudo /usr/bin/samba-tool user delete %s',
             escapeshellarg($username)
-        );
-
-        return $this->execute($cmd);
+        ));
     }
 }
