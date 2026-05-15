@@ -12,11 +12,36 @@ import {
 import AppLayout from '@/layouts/app-layout';
 import visitors from '@/routes/visitors';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, useForm } from '@inertiajs/react';
-import React from 'react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import React, { useEffect } from 'react';
 import { toast } from 'sonner';
+import { Toaster } from '@/components/ui/sonner';
 
-export default function EditVisitor({ visitor, types, voucher }: any) {
+interface Visitor {
+    id: number;
+    name: string;
+    cpf: string;
+    phone?: string;
+    email?: string;
+    type_id: number;
+    school?: string;
+    expires_at?: string;
+    enabled: boolean;
+}
+
+export default function EditVisitor({ visitor, types }: { visitor: Visitor; types: Array<{ id: number; name: string }> }) {
+    const { props } = usePage<{ flash: { success?: string; error?: string } }>();
+    const flash = props.flash;
+
+    useEffect(() => {
+        if (flash.success) {
+            toast.success(flash.success);
+        }
+        if (flash.error) {
+            toast.error(flash.error);
+        }
+    }, [flash.success, flash.error]);
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Visitantes', href: visitors.index.get().url },
         { title: 'Editar', href: '#' },
@@ -37,7 +62,7 @@ export default function EditVisitor({ visitor, types, voucher }: any) {
         e.preventDefault();
 
         if (!data.expires_at) {
-            toast("Informe uma data de expiração.");
+            toast.error("Informe uma data de expiração.");
             return;
         }
 
@@ -47,18 +72,31 @@ export default function EditVisitor({ visitor, types, voucher }: any) {
         const selectedDate = new Date(data.expires_at + "T00:00:00");
 
         if (selectedDate < today) {
-            toast("A data de expiração não pode ser menor que hoje.");
+            toast.error("A data de expiração não pode ser menor que hoje.");
             return;
         }
 
         put(visitors.update({ visitor: visitor.id }).url, {
             preserveScroll: true,
+            onSuccess: (page) => {
+                const success = page.props.flash?.success;
+                if (success) {
+                    toast.success(success);
+                }
+            },
+            onError: (errors) => {
+                const firstError = Object.values(errors)[0];
+                if (firstError) {
+                    toast.error(String(firstError));
+                }
+            },
         });
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Editar Visitante" />
+            <Toaster />
 
             <div className="w-full max-w-4xl p-6">
                 <h1 className="mb-6 text-2xl font-semibold">Editar Visitante</h1>
@@ -112,7 +150,7 @@ export default function EditVisitor({ visitor, types, voucher }: any) {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {types.map((t: any) => (
+                                    {types.map((t) => (
                                         <SelectItem key={t.id} value={String(t.id)}>
                                             {t.name}
                                         </SelectItem>
@@ -122,7 +160,7 @@ export default function EditVisitor({ visitor, types, voucher }: any) {
                         </div>
 
                         <div>
-                            <Label>Instituição/Escola</Label>
+                            <Label>Observação</Label>
                             <Input
                                 value={data.school}
                                 onChange={e => setData('school', e.target.value)}
@@ -138,21 +176,7 @@ export default function EditVisitor({ visitor, types, voucher }: any) {
                             />
                         </div>
 
-                        <div>
-                            <Label>Status</Label>
-                            <Select
-                                value={data.enabled}
-                                onValueChange={(value) => setData('enabled', value)}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="1">Ativo</SelectItem>
-                                    <SelectItem value="0">Inativo</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        
 
                     </div>
 
@@ -204,14 +228,22 @@ export default function EditVisitor({ visitor, types, voucher }: any) {
                         <Button disabled={processing} type="submit">Salvar</Button>
                         <ConfirmDialog
                             title="Gerar nova senha"
-                            description="Deseja realmente gerar uma nova senha para este visitante? OBS: Se você deseja alterar a data também atualize e use este icone que irá adicionar a nova senha e atualização da data.
-                            "
-                            onConfirm={() =>
+                            description="Deseja realmente gerar uma nova senha para este visitante?"
+                            onConfirm={() => {
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                const selectedDate = new Date(data.expires_at + "T00:00:00");
+
+                                if (!data.expires_at || selectedDate < today) {
+                                    toast.error("Ajuste a data de expiração para hoje ou posterior.");
+                                    return;
+                                }
+
                                 router.post(
                                     visitors.generatePassword({ visitor: visitor.id }).url,
-                                    { preserveScroll: true }
-                                )
-                            }
+                                    { preserveState: false }
+                                );
+                            }}
                             trigger={
                                 <Button type="button" disabled={processing}>
                                     Nova Senha

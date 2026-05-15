@@ -16,15 +16,13 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'department_id',
+        'ldap_dn',
+        'username',
         'role',
+        'department_id',
     ];
-
     protected $hidden = [
         'password',
-        'two_factor_secret',
-        'two_factor_recovery_codes',
-        'remember_token',
     ];
 
     protected function casts(): array
@@ -53,6 +51,33 @@ class User extends Authenticatable
         return $this->hasMany(Voucher::class, 'created_by');
     }
 
+    /* ================= HELPERS PARA LDAP / POLICIES ================= */
+
+    /**
+     * Verifica se o usuário pertence a um departamento específico
+     * (usado nas Policies e regras de autorização)
+     */
+    public function belongsToDepartment(Department $department): bool
+    {
+        return $this->department_id === $department->id;
+    }
+
+    /**
+     * Verifica se é admin pelo papel vindo do AD
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Verifica se é operador
+     */
+    public function isOperator(): bool
+    {
+        return $this->role === 'operator';
+    }
+
     /* ================= SCOPES ================= */
 
     public function scopeSearch(Builder $query, ?string $search): Builder
@@ -63,19 +88,24 @@ class User extends Authenticatable
 
         return $query->where(function ($q) use ($search) {
             $q->where('name', 'like', "%{$search}%")
-              ->orWhere('email', 'like', "%{$search}%");
+                ->orWhere('email', 'like', "%{$search}%")
+                ->orWhere('username', 'like', "%{$search}%")
+                ->orWhere('ldap_dn', 'like', "%{$search}%");
         });
     }
 
-    public function scopeDepartmentFilter(
-        Builder $query,
-        ?int $departmentId
-    ): Builder {
-        return $departmentId
-            ? $query->where('department_id', $departmentId)
-            : $query;
+    public function scopeDepartmentFilter(Builder $query, ?int $departmentId): Builder
+    {
+        if (!$departmentId) {
+            return $query;
+        }
+
+        return $query->where('department_id', $departmentId);
     }
 
+    /**
+     * Ordenações padrão (mantido)
+     */
     public function scopeApplyOrdering(
         Builder $query,
         ?string $orderName,

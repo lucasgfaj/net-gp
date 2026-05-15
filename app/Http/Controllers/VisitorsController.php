@@ -5,28 +5,20 @@ namespace App\Http\Controllers;
 use App\Http\Requests\VisitorIndexRequest;
 use App\Models\Visitor;
 use App\Models\VisitorType;
-use App\Models\Voucher;
 use App\Models\Department;
-use App\Notifications\ResendVisitorLogin;
-use App\Notifications\UpdateVisitorLogin;
-use App\Notifications\VisitorLogin;
 use App\Rules\CpfRule;
+use App\Services\VisitorService;
+use App\Exceptions\VisitorException;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
-use App\Services\SambaService;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class VisitorsController extends Controller
 {
-
-    private SambaService $sambaService;
-
-    public function __construct(SambaService $sambaService)
-    {
-        $this->sambaService = $sambaService;
-    }
+    public function __construct(
+        protected VisitorService $visitorService
+    ) {}
 
     public function index(VisitorIndexRequest $request)
     {
@@ -74,88 +66,105 @@ class VisitorsController extends Controller
         ]);
     }
 
-   public function store(Request $request, Visitor $visitor)
-{
-    $validated = $request->validate([
-        'name' => ['required', 'string', 'min:3', 'max:255'],
-        'cpf' => [
-            'required',
-            Rule::unique('visitors', 'cpf')->ignore($visitor->id),
-            new CpfRule,
-        ],
-        'email' => [
-            'required',
-            'email',
-            Rule::unique('visitors', 'email')->ignore($visitor->id),
-        ],
-        'phone' => ['nullable', 'string', 'max:20'],
-        'type_id' => ['required', 'exists:visitor_types,id'],
-        'expires_at' => ['required', 'date', 'after:now'],
-    ]);
+    public function show(Visitor $visitor)
+    {
+        $visitor->load(['type', 'voucher', 'creator.department']);
 
-    try {
-
-        DB::beginTransaction();
-
-        $visitor = Visitor::create([
-            ...$validated,
-            'cpf' => preg_replace('/\D/', '', $validated['cpf']),
-            'created_by' => auth()->id(),
-            'enabled' => true,
+        return Inertia::render('visitors/show', [
+            'visitor' => $visitor,
         ]);
-
-        $login = preg_replace('/\D/', '', $visitor->cpf);
-        $passwordPlain = substr(md5(uniqid()), 0, 8);
-
-        Voucher::create([
-            'visitor_id' => $visitor->id,
-            'login' => $login,
-            'password' => $passwordPlain,
-            'expires_at' => $visitor->expires_at,
-            'created_by' => auth()->id(),
-        ]);
-
-        $result = $this->sambaService->createSambaUser(
-            $login,
-            $passwordPlain
-        );
-
-        if(!$result['success']){
-            throw new \Exception($result['error'] ?? 'Erro ao criar usuário no Samba');
-        }
-
-        DB::commit();
-
-        if ($visitor->email) {
-            $visitor->notify(
-                new VisitorLogin(
-                    email: $login,
-                    password: $passwordPlain,
-                    expiresAt: $visitor->expires_at->format('d/m/Y H:i')
-                )
-            );
-        }
-
-        return redirect()
-            ->route('visitors.index')
-            ->with('success', 'Visitante criado com sucesso.');
-
-    } catch (\Throwable $e) {
-
-        DB::rollBack();
-
-        Log::error('Erro ao criar visitante no Samba', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-        ]);
-
-        return back()
-            ->withErrors([
-                'samba' => 'Não foi possível criar o usuário no sistema de acesso (Samba). Tente novamente ou contate o suporte.'
-            ])
-            ->withInput();
     }
-}
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'min:2',
+                'max:255',
+                function ($attribute, $value, $fail) {
+                    $name = trim($value);
+                    if (preg_match('/[0-9]/', $name)) {
+                        $fail('Nome não pode conter números');
+                    }
+                    if (preg_match('/(.)\1{5,}/', $name)) {
+                        $fail('Nome inválido');
+                    }
+                }
+            ],
+            'cpf' => [
+                'required',
+                'string',
+                'min:11',
+                'max:14',
+                Rule::unique('visitors', 'cpf'),
+                new CpfRule,
+            ],
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('visitors', 'email'),
+            ],
+            'phone' => [
+                'nullable',
+                'string',
+                'min:10',
+                'max:15',
+            ],
+            'type_id' => ['required', 'exists:visitor_types,id'],
+            'expires_at' => [
+                'required',
+                'date',
+                'after:now',
+                function ($attribute, $value, $fail) {
+                    $inputDate = \Carbon\Carbon::parse($value);
+                    $today = now()->startOfDay();
+                    $maxDate = $today->copy()->addYears(2);
+                    
+                    if ($inputDate->year === 2030 && $inputDate->year > $today->year) {
+                        $maxDate = $today->copy()->addYears(4);
+                    } elseif ($inputDate->year >= 2028) {
+                        $maxDate = $today->copy()->addYears(2);
+                    }
+                    
+                    if ($inputDate->isAfter($maxDate)) {
+                        $fail('A data máxima é ' . $maxDate->format('d/m/Y') . '. Após esse ano não é permitida.');
+                    }
+                },
+            ],
+        ]);
+
+        try {
+            $visitor = $this->visitorService->create([
+                ...$validated,
+                'created_by' => auth()->id(),
+            ]);
+
+            $login = preg_replace('/\D/', '', $visitor->cpf);
+            
+            return redirect()
+                ->route('visitors.index')
+                ->with('success', "Visitante criado com sucesso. Login: {$login} | Senha enviada para {$visitor->email}");
+        } catch (VisitorException $e) {
+            $field = $e->getField();
+            
+            if ($field) {
+                return back()
+                    ->withErrors([$field => $e->getMessage()])
+                    ->withInput();
+            }
+            
+            return back()
+                ->withErrors(['samba' => $e->getMessage()])
+                ->withInput();
+        } catch (\Throwable $e) {
+            return back()
+                ->withErrors(['error' => 'Erro interno do servidor. Contate o suporte.'])
+                ->withInput();
+        }
+    }
+
     public function edit(Visitor $visitor)
     {
         $visitor->load(['type', 'voucher']);
@@ -174,157 +183,71 @@ class VisitorsController extends Controller
             'cpf' => 'required',
             'email' => 'nullable|email',
             'type_id' => 'required|exists:visitor_types,id',
-            'expires_at' => 'required|date',
+            'expires_at' => [
+                'required',
+                'date',
+                'after:now',
+                function ($attribute, $value, $fail) {
+                    $inputDate = \Carbon\Carbon::parse($value);
+                    $today = now()->startOfDay();
+                    
+                    if ($inputDate->year >= 2028) {
+                        $maxDate = $today->copy()->addYears(2);
+                        $fail('A data máxima é ' . $maxDate->format('d/m/Y') . '. Após esse ano não é permitida.');
+                    }
+                },
+            ],
         ]);
 
-        $oldCpf = preg_replace('/\D/', '', $visitor->cpf);
-
-        $visitor->update([
-            ...$request->only([
-                'name',
-                'phone',
-                'email',
-                'type_id',
-                'school',
-                'expires_at',
-                'enabled'
-            ]),
-            'cpf' => preg_replace('/\D/', '', $request->cpf),
-        ]);
-
-        $newCpf = preg_replace('/\D/', '', $visitor->cpf);
-
-        $voucher = Voucher::firstOrNew([
-            'visitor_id' => $visitor->id
-        ]);
-
-        $cpfChanged = $oldCpf !== $newCpf;
-
-        if ($cpfChanged && $voucher->exists) {
-
-            $this->sambaService->deleteSambaUser($oldCpf);
-
-            $voucher->password = substr(md5(uniqid()), 0, 8);
-
-            $this->sambaService->createSambaUser(
-                $newCpf,
-                $voucher->password
-            );
-        }
-          else {
-
-            if (!$voucher->password) {
-
-                $voucher->password = substr(md5(uniqid()), 0, 8);
-
-                $this->sambaService->createSambaUser(
-                    $newCpf,
-                    $voucher->password
-                );
-            }
-
-            if ($request->boolean('reset_password')) {
-
-                $voucher->password = substr(md5(uniqid()), 0, 8);
-
-                $this->sambaService->updateSambaUserPassword(
-                    $newCpf,
-                    $voucher->password
-                );
-            }
-        }
-
-        $voucher->login = $newCpf;
-        $voucher->expires_at = $visitor->expires_at;
-        $voucher->save();
-
-        // Enviar e-mail só se trocar CPF ou resetar senha
-        if ($cpfChanged || $request->boolean('reset_password')) {
-            // dispatch(new SendVoucherMail($visitor, $voucher));
-        }
+        $this->visitorService->update($visitor, $request->all(), auth()->id());
 
         return back()->with('success', 'Visitante atualizado com sucesso.');
     }
 
     public function generatePassword(Visitor $visitor)
     {
+        if ($visitor->expires_at && $visitor->expires_at->isPast()) {
+            return back()->with('error', 'A data de expiração deve ser hoje ou posterior.');
+        }
+
+        $result = $this->visitorService->generatePassword($visitor, auth()->id());
+
+        if (!$result['success']) {
+            return back()->with('error', $result['error']);
+        }
+
         $visitor->refresh();
-
+        
         $login = preg_replace('/\D/', '', $visitor->cpf);
-        $passwordPlain = substr(md5(uniqid()), 0, 8);
-
-        $voucher = Voucher::firstOrNew([
-            'visitor_id' => $visitor->id,
-        ]);
-
-        $isNewVoucher = !$voucher->exists;
-
-        $voucher->login = $login;
-        $voucher->password = $passwordPlain;
-        $voucher->expires_at = $visitor->expires_at;
-        $voucher->save();
-
-        if ($isNewVoucher) {
-            $this->sambaService->createSambaUser(
-                $login,
-                $passwordPlain
-            );
-        } else {
-            $this->sambaService->updateSambaUserPassword(
-                $login,
-                $passwordPlain
-            );
-        }
-
-        // Envia e-mail somente se tiver e-mail
-        if ($visitor->email) {
-            $visitor->notify(
-                new UpdateVisitorLogin(
-                    email: $login,
-                    password: $passwordPlain,
-                    expiresAt: $visitor->expires_at->format('d/m/Y H:i')
-                )
-            );
-        }
-
-        return back()->with('success', 'Nova senha gerada e enviada com sucesso.');
+        
+        return back()->with('success', "Nova senha gerada. Login: {$login} | enviada para {$visitor->email}");
     }
 
     public function resendPassword(Visitor $visitor)
     {
-        $visitor->refresh();
+        $result = $this->visitorService->resendPassword($visitor, auth()->id());
 
-        $voucher = Voucher::where('visitor_id', $visitor->id)->first();
-
-        if (!$voucher) {
+        if (!$result) {
             return back()->with('error', 'Voucher não encontrado para este visitante.');
         }
+        
+        $visitor->refresh();
+        $login = preg_replace('/\D/', '', $visitor->cpf);
 
-        if ($visitor->email) {
-            $visitor->notify(
-                new ResendVisitorLogin(
-                    email: $voucher->login,
-                    password: $voucher->password,
-                    expiresAt: $visitor->expires_at->format('d/m/Y H:i')
-                )
-            );
-        }
-
-        return back()
-            ->with('success', 'Voucher reenviado com sucesso.');
+        return back()->with('success', "Voucher reenviado. Login: {$login} | Senha enviada para {$visitor->email}");
     }
 
     public function destroy(Visitor $visitor)
     {
         $login = preg_replace('/\D/', '', $visitor->cpf);
+        $name = $visitor->name;
 
-        $this->sambaService->deleteSambaUser($login);
+        try {
+            $this->visitorService->delete($visitor, auth()->id());
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Erro ao remover visitante: ' . $e->getMessage());
+        }
 
-        Voucher::where('visitor_id', $visitor->id)->delete();
-
-        $visitor->delete();
-
-        return back()->with('success', 'Visitante removido com sucesso.');
+        return back()->with('success', "Visitante '{$name}' removido com sucesso.");
     }
-
 }

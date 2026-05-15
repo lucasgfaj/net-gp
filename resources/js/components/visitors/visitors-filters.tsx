@@ -9,12 +9,12 @@ import {
 } from "@/components/ui/select";
 
 interface VisitorsFiltersProps {
-    filters: any;
+    filters: Record<string, unknown>;
     types: Array<{ id: number; name: string }>;
-    onChange: (filters: any) => void;
+    onChange: (filters: Record<string, unknown>) => void;
     onClear: () => void;
     userDepartmentId: number;
-    departments: any;
+    departments: Array<{ id: number; name: string }>;
 }
 
 export default function VisitorsFilters({
@@ -35,7 +35,7 @@ export default function VisitorsFilters({
     );
 
     function applyFilters() {
-        const params: any = {};
+        const params: Record<string, unknown> = {};
 
         if (typeId !== "all") {
             params.type_id = typeId;
@@ -128,7 +128,7 @@ export default function VisitorsFilters({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="none">Todos</SelectItem>
-                            {departments.map((d: any) => (
+                            {departments.map((d) => (
                                 <SelectItem key={d.id} value={String(d.id)}>
                                     {d.name}
                                 </SelectItem>

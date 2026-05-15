@@ -13,9 +13,6 @@ class Department extends Model
         'name',
     ];
 
-    /**
-     * Relacionamento: um departamento tem muitos usuários.
-     */
     public function users()
     {
         return $this->hasMany(User::class);

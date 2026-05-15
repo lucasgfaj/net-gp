@@ -21,7 +21,19 @@ services:
     working_dir: /var/www
     volumes:
       - .:/var/www
-      - ${HOME}/.ssh:/var/www/.ssh:ro
+    networks:
+      - app-network
+    depends_on:
+      - db
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /var/www
+    command: /usr/bin/supervisord -c /var/www/docker/supervisor.ini
+    volumes:
+      - .:/var/www
     networks:
       - app-network
     depends_on:

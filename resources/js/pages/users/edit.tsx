@@ -13,7 +13,21 @@ import users from '@/routes/users';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function EditUsers({ user, authUser, departments }: any) {
+interface User {
+    id: number;
+    role: string;
+    active: boolean | string;
+    name: string;
+    email: string;
+    username: string;
+    department: { name: string };
+}
+
+interface AuthUser {
+    id: number;
+}
+
+export default function EditUsers({ user, authUser }: { user: User; authUser: AuthUser }) {
     const isSelf = Number(authUser.id) === Number(user.id);
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -21,12 +35,9 @@ export default function EditUsers({ user, authUser, departments }: any) {
         { title: 'Editar', href: '#' },
     ];
 
-    const { data, setData, put, processing, errors } = useForm({
-        name: user.name,
-        email: user.email,
+    const { data, setData, put, errors } = useForm({
         role: user.role,
-        department_id: user.department_id ? String(user.department_id) : '',
-        password: '',
+        active: user.active ? '1' : '0',
     });
 
     const submit = (e: React.FormEvent) => {
@@ -42,72 +53,37 @@ export default function EditUsers({ user, authUser, departments }: any) {
                 <h1 className="mb-6 text-2xl font-semibold">Editar Usuário</h1>
 
                 <form onSubmit={submit} className="space-y-4">
-                    {/* Nome */}
+
                     <div>
-                        <Label htmlFor="name">Nome</Label>
-                        <Input
-                            id="name"
-                            value={data.name}
-                            onChange={(e) => setData('name', e.target.value)}
-                        />
-                        {errors.name && (
-                            <p className="mt-1 text-sm text-red-500">
-                                {errors.name}
-                            </p>
-                        )}
+                        <Label>Nome</Label>
+                        <Input value={user.name} readOnly className="opacity-70" />
                     </div>
 
-                    {/* Email – desabilitado se for o próprio usuário */}
                     <div>
-                        <Label htmlFor="email">E-mail</Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            disabled={isSelf}
-                            className={isSelf ? 'opacity-50' : ''}
-                            value={data.email}
-                            onChange={(e) => setData('email', e.target.value)}
-                        />
-                        {errors.email && (
-                            <p className="mt-1 text-sm text-red-500">
-                                {errors.email}
-                            </p>
-                        )}
+                        <Label>Email</Label>
+                        <Input value={user.email} readOnly className="opacity-70" />
                     </div>
 
-                    {/* Password opcional */}
                     <div>
-                        <Label htmlFor="password">Senha</Label>
-                        <Input
-                            id="password"
-                            type="password"
-                            value={data.password}
-                            onChange={(e) => setData('password', e.target.value)}
-                        />
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Preencha somente se quiser alterar a senha.
-                        </p>
-                        {errors.password && (
-                            <p className="mt-1 text-sm text-red-500">
-                                {errors.password}
-                            </p>
-                        )}
+                        <Label>Username</Label>
+                        <Input value={user.username} readOnly className="opacity-70" />
                     </div>
 
-                    {/* Role – desabilitado se for o próprio usuário */}
                     <div>
-                        <Label>Função</Label>
+                        <Label>Departamento</Label>
+                        <Input value={user.department.name} readOnly className="opacity-70" />
+                    </div>
+
+                    <div>
+                        <Label>Função no sistema</Label>
                         <Select
                             value={data.role}
                             onValueChange={(value) => setData('role', value)}
                             disabled={isSelf}
                         >
-                            <SelectTrigger
-                                className={`w-full ${isSelf ? 'opacity-50' : ''}`}
-                            >
-                                <SelectValue placeholder="Selecione o papel" />
+                            <SelectTrigger className="w-full">
+                                <SelectValue />
                             </SelectTrigger>
-
                             <SelectContent>
                                 <SelectItem value="admin">Administrador</SelectItem>
                                 <SelectItem value="operator">Operador</SelectItem>
@@ -115,53 +91,18 @@ export default function EditUsers({ user, authUser, departments }: any) {
                         </Select>
 
                         {errors.role && (
-                            <p className="mt-1 text-sm text-red-500">
-                                {errors.role}
-                            </p>
+                            <p className="mt-1 text-sm text-red-500">{errors.role}</p>
                         )}
                     </div>
 
-                    {/* Departamento – desabilitado se for o próprio usuário */}
-                    <div>
-                        <Label>Departamento</Label>
-                        <Select
-                            value={data.department_id}
-                            onValueChange={(value) =>
-                                setData('department_id', value)
-                            }
-                            disabled={isSelf}
-                        >
-                            <SelectTrigger
-                                className={`w-full ${isSelf ? 'opacity-50' : ''}`}
-                            >
-                                <SelectValue placeholder="Selecione o departamento" />
-                            </SelectTrigger>
-
-                            <SelectContent>
-                                {departments.map((d: any) => (
-                                    <SelectItem key={d.id} value={String(d.id)}>
-                                        {d.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        {errors.department_id && (
-                            <p className="mt-1 text-sm text-red-500">
-                                {errors.department_id}
-                            </p>
-                        )}
-                    </div>
-
-                    {/* Botões */}
-                    <div className="mt-4 flex justify-start gap-2">
-                        <Button variant="outline" asChild>
-                            <Link href={users.index.get().url}>Cancelar</Link>
+                    <div className="mt-6 flex gap-2">
+                        <Button asChild>
+                            <Link href={users.index.get().url}>Voltar</Link>
                         </Button>
 
-                        <Button disabled={processing} type="submit">
-                            Salvar
-                        </Button>
+                        {/* <Button disabled={processing} type="submit">
+                            Salvar alterações
+                        </Button> */}
                     </div>
                 </form>
             </div>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\ActivityLogInterface;
 use App\Models\Department;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -48,7 +49,7 @@ public function index(Request $request)
         return Inertia::render('departments/create');
     }
 
-    public function store(Request $request)
+    public function store(Request $request, ActivityLogInterface $activityLogService)
     {
         $request->validate(
             [
@@ -59,9 +60,14 @@ public function index(Request $request)
             ]
         );
 
-        Department::create([
+        $department = Department::create([
             'name' => $request->name,
         ]);
+
+        $activityLogService->logDepartmentCreated(
+            $department->id,
+            $department->name
+        );
 
         return redirect()->route('departments.index')
             ->with('success', 'Departamento criado com sucesso!');
@@ -95,7 +101,7 @@ public function index(Request $request)
     }
 
 
-    public function destroy(Department $department)
+    public function destroy(Department $department, ActivityLogInterface $activityLogService)
     {
         if ($department->users()->exists()) {
             return back()->withErrors([
@@ -103,7 +109,13 @@ public function index(Request $request)
             ]);
         }
 
+        $departmentName = $department->name;
         $department->delete();
+
+        $activityLogService->logDepartmentDeleted(
+            $department->id,
+            $departmentName
+        );
 
         return redirect()->route('departments.index')
             ->with('success', 'Departamento excluído');

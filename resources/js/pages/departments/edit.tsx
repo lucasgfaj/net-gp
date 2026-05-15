@@ -6,7 +6,12 @@ import departments from '@/routes/departments';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function EditDepartment({ department }: any) {
+interface Department {
+    id: number;
+    name: string;
+}
+
+export default function EditDepartment({ department }: { department: Department }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Departamentos', href: departments.index.get().url },
         { title: 'Editar', href: '#' },

@@ -4,6 +4,7 @@ FROM php:8.3.4-fpm
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     libzip-dev \
+    libldap2-dev \
     libssh2-1-dev \
     zip \
     tzdata \
@@ -14,17 +15,28 @@ RUN apt-get update && apt-get install -y \
     g++ \
     make \
     openssh-client \
+    git \
+    supervisor \
     && docker-php-ext-configure zip \
     && docker-php-ext-install pdo_pgsql zip \
-    && pecl install ssh2 \
-    && docker-php-ext-enable ssh2 \
+    && docker-php-ext-configure ldap --with-libdir=lib/x86_64-linux-gnu \
+    && docker-php-ext-install ldap \
+    && git clone https://github.com/php/pecl-networking-ssh2.git /usr/src/php/ext/ssh2 \
+    && docker-php-ext-install ssh2 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /home/www-data \
     && chown -R www-data:www-data /home/www-data
 
-RUN echo "StrictModes no" >> /etc/ssh/ssh_config
+RUN mkdir -p /var/www/.ssh \
+    && chown -R www-data:www-data /var/www/.ssh \
+    && chmod 700 /var/www/.ssh
+
+COPY docker/ssh/id_ed25519_php /var/www/.ssh/id_ed25519_php
+
+RUN chown www-data:www-data /var/www/.ssh/id_ed25519_php \
+    && chmod 600 /var/www/.ssh/id_ed25519_php
 
 # Configura timezone para America/Sao_Paulo
 RUN ln -fs /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime \

@@ -10,9 +10,9 @@ import {
 import { Input } from "@/components/ui/input";
 
 interface UsersFiltersProps {
-    filters: any;
+    filters: Record<string, unknown>;
     departments: Array<{ id: number; name: string }>;
-    onChange: (filters: any) => void;
+    onChange: (filters: Record<string, unknown>) => void;
     onClear: () => void;
 }
 
@@ -34,7 +34,7 @@ export default function UsersFilters({
     );
 
     function applyFilters() {
-        const params: any = {};
+        const params: Record<string, unknown> = {};
 
         if (search.trim().length > 0) {
             params.search = search.trim();

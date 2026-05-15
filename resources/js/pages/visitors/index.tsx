@@ -13,14 +13,47 @@ import {
 import VisitorsFilters from "@/components/visitors/visitors-filters";
 import AppLayout from "@/layouts/app-layout";
 import visitors from "@/routes/visitors";
+import visitorImports from "@/routes/visitors/import/index";
 import { type BreadcrumbItem } from "@/types";
 import { Head, Link, router, usePage } from "@inertiajs/react";
 import debounce from "lodash.debounce";
-import { Edit, Trash2, SlidersHorizontal } from "lucide-react";
+import { Edit, Trash2, SlidersHorizontal, FileSpreadsheet } from "lucide-react";
+import { shortenName } from "@/lib/utils";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
+
+interface Visitor {
+    id: number;
+    name: string;
+    cpf: string;
+    email?: string;
+    type?: { name: string };
+    creator?: { name: string };
+    created_at: string;
+    expires_at?: string;
+}
+
+interface PageProps {
+    visitors: {
+        data: Visitor[];
+        from: number;
+        total: number;
+        per_page: number;
+        links: Array<{ url: string | null; label: string; active: boolean }>;
+    };
+    filters: {
+        search?: string;
+        sort?: string;
+        direction?: string;
+    };
+    types: unknown;
+    user_department_id: unknown;
+    departments: unknown;
+}
 
 export default function VisitorsIndex() {
-    const { props }: any = usePage();
+    const { props } = usePage<{ props: PageProps }>();
     const { visitors: paginated, filters, types } = props;
 
     const [search, setSearch] = useState(filters?.search || "");
@@ -47,7 +80,24 @@ export default function VisitorsIndex() {
 
     useEffect(() => {
         if (typing) liveSearch(search);
-    }, [search]);
+    }, [search, typing, liveSearch]);
+
+    useEffect(() => {
+        const hasExpiringSoon = paginated?.data?.some((v) => {
+            if (!v.expires_at) return false;
+            const daysUntilExpiry = (new Date(v.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+            return daysUntilExpiry > 0 && daysUntilExpiry <= 7;
+        });
+        
+        if (!hasExpiringSoon) {
+            return;
+        }
+        
+        const interval = setInterval(() => {
+            router.reload({ only: ['visitors'] });
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [paginated?.data]);
 
     const handleSort = (column: string) => {
         const newDirection =
@@ -65,7 +115,7 @@ export default function VisitorsIndex() {
         );
     };
 
-    const handleFilterChange = (newFilters: any) => {
+    const handleFilterChange = (newFilters: Record<string, unknown>) => {
         setCurrentFilters(newFilters);
         router.get(visitors.index.get().url, newFilters, {
             preserveState: false,
@@ -87,6 +137,7 @@ export default function VisitorsIndex() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Visitantes" />
+            <Toaster />
 
             <div className="flex flex-col gap-4 p-4 sm:p-6">
 
@@ -117,13 +168,24 @@ export default function VisitorsIndex() {
                         </Button>
                     </div>
 
-                    {/* CRIAR */}
-                    <Link
-                        href={visitors.create.get().url}
-                        className="mt-2 w-full sm:mt-0 sm:w-auto"
-                    >
-                        <Button className="w-full sm:w-auto">Criar Visitante</Button>
-                    </Link>
+                    {/* CRIAR + IMPORTAR */}
+                    <div className="flex gap-2 mt-2 sm:mt-0">
+                        <Link
+                            href={visitorImports.index.url()}
+                            className="w-full sm:w-auto"
+                        >
+                            <Button variant="outline" className="w-full sm:w-auto">
+                                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                Importação em Lote
+                            </Button>
+                        </Link>
+                        <Link
+                            href={visitors.create.get().url}
+                            className="w-full sm:w-auto"
+                        >
+                            <Button className="w-full sm:w-auto">Criar Visitante</Button>
+                        </Link>
+                    </div>
                 </div>
 
                 {/* FILTROS EXPANDIDOS */}
@@ -140,7 +202,7 @@ export default function VisitorsIndex() {
 
                 {/* TABELA */}
                 <div className="overflow-x-auto rounded-xl border">
-                    <Table className="min-w-[900px]">
+                    <Table className="min-w-[900px] w-full">
                         <TableHeader>
                             <TableRow>
                                 <TableHead>#</TableHead>
@@ -173,14 +235,14 @@ export default function VisitorsIndex() {
                                 </TableRow>
                             )}
 
-                            {items.map((v: any, index: number) => (
+                            {items.map((v, index: number) => (
                                 <TableRow key={v.id}>
                                     <TableCell>{paginated.from + index}</TableCell>
-                                    <TableCell>{v.name}</TableCell>
+                                    <TableCell>{shortenName(v.name)}</TableCell>
                                     <TableCell>{v.cpf}</TableCell>
                                     <TableCell>{v.email || "—"}</TableCell>
                                     <TableCell>{v.type?.name || "—"}</TableCell>
-                                    <TableCell>{v.creator?.name || "—"}</TableCell>
+                                    <TableCell>{shortenName(v.creator?.name) || "—"}</TableCell>
                                     <TableCell>
                                         {new Date(v.created_at).toLocaleDateString("pt-BR")}
                                     </TableCell>
@@ -193,7 +255,21 @@ export default function VisitorsIndex() {
 
                                         <ConfirmDialog
                                             onConfirm={() =>
-                                                router.delete(visitors.destroy(v.id).url, { preserveScroll: true })
+                                                router.delete(visitors.destroy(v.id).url, {
+                                                    preserveScroll: true,
+                                                    onSuccess: (page) => {
+                                                        const success = page.props.flash?.success;
+                                                        if (success) {
+                                                            toast.success(success);
+                                                        }
+                                                    },
+                                                    onError: (errors) => {
+                                                        const firstError = Object.values(errors)[0];
+                                                        if (firstError) {
+                                                            toast.error(String(firstError));
+                                                        }
+                                                    },
+                                                })
                                             }
                                             title="Excluir Visitante"
                                             description={`Tem certeza que deseja excluir "${v.name}"?`}
@@ -211,7 +287,7 @@ export default function VisitorsIndex() {
                 </div>
 
                 {/* PAGINAÇÃO */}
-                {paginated.total > paginated.per_page && (
+                {paginated && paginated.total > paginated.per_page && (
                     <Pagination links={paginated.links} />
                 )}
             </div>

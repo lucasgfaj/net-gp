@@ -18,8 +18,28 @@ import debounce from 'lodash.debounce';
 import { Edit, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+interface Department {
+    id: number;
+    name: string;
+}
+
+interface PageProps {
+    departments: {
+        data: Department[];
+        from: number;
+        total: number;
+        per_page: number;
+        links: Array<{ url: string | null; label: string; active: boolean }>;
+    };
+    filters: {
+        search?: string;
+        sort?: string;
+        direction?: string;
+    };
+}
+
 export default function DepartmentsIndex() {
-    const { props }: any = usePage();
+    const { props } = usePage<{ props: PageProps }>();
     const { departments: paginated, filters } = props;
 
     const [search, setSearch] = useState(filters?.search || '');
@@ -43,7 +63,7 @@ export default function DepartmentsIndex() {
 
     useEffect(() => {
         if (typing) liveSearch(search);
-    }, [search]);
+    }, [search, typing, liveSearch]);
 
     const handleSort = (column: string) => {
         const newDirection =
@@ -122,7 +142,7 @@ export default function DepartmentsIndex() {
                                 </TableRow>
                             )}
 
-                            {items.map((d: any, index: number) => (
+                            {items.map((d, index: number) => (
                                 <TableRow key={d.id}>
                                     <TableCell>
                                         {paginated.from + index}
@@ -210,7 +230,7 @@ export default function DepartmentsIndex() {
                     </Table>
                 </div>
 
-                {paginated.total > paginated.per_page && (
+                {paginated && paginated.total > paginated.per_page && (
                     <Pagination links={paginated.links} />
                 )}
             </div>
