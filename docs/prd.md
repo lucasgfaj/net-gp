@@ -30,10 +30,10 @@ Sistema web para gestão de visitantes com criação automática de vouchers de 
 | ---------------- | ------ | -------------------------- |
 | PHP              | 8.2+   | Linguagem backend          |
 | Laravel          | 12.x   | Framework PHP              |
-| React            | 18.x   | Framework frontend         |
+| React            | 19.x   | Framework frontend         |
 | Inertia          | 2.x    | Adapter React para Laravel |
-| Tailwind CSS     | 3.x    | Framework CSS              |
-| MySQL/PostgreSQL | 8.x+   | Banco de dados             |
+| Tailwind CSS     | 4.x    | Framework CSS              |
+| PostgreSQL       | 14.x+  | Banco de dados             |
 | Docker           | Latest | Containerização            |
 | LDAP/AD          | -      | Autenticação               |
 
@@ -95,49 +95,49 @@ Sistema web para gestão de visitantes com criação automática de vouchers de 
 
 | # | Requisito | Descrição | Prioridade |
 |---|----------|-----------|------------|
-| RF17 | Listar departamentos | Ver todos os departamentos | Alta |
-| RF18 | Criar departamento | Cadastrar novo departamento | Admin |
-| RF19 | Editar departamento | Alterar nome do departamento | Admin |
-| RF20 | Excluir departamento | Remover departamento | Admin |
+| RF18 | Listar departamentos | Ver todos os departamentos | Alta |
+| RF19 | Criar departamento | Cadastrar novo departamento | Admin |
+| RF20 | Editar departamento | Alterar nome do departamento | Admin |
+| RF21 | Excluir departamento | Remover departamento | Admin |
 
 ### 2.5 Módulo de Tipos de Visitante
 
 | # | Requisito | Descrição | Prioridade |
 |---|----------|-----------|------------|
-| RF21 | Listar tipos | Ver tipos de visitante | Alta |
-| RF22 | Criar tipo | Cadastrar novo tipo | Admin |
-| RF23 | Editar tipo | Alterar tipo | Admin |
-| RF24 | Excluir tipo | Remover tipo | Admin |
+| RF22 | Listar tipos | Ver tipos de visitante | Alta |
+| RF23 | Criar tipo | Cadastrar novo tipo | Admin |
+| RF24 | Editar tipo | Alterar tipo | Admin |
+| RF25 | Excluir tipo | Remover tipo | Admin |
 
 ### 2.6 Módulo de Usuários (Admin)
 
 | # | Requisito | Descrição | Prioridade |
 |---|----------|-----------|------------|
-| RF25 | Listar usuários | Ver todos os usuários do sistema | Admin |
-| RF26 | Editar usuário | Alterar role de usuário | Admin |
-| RF27 | Filtrar por department | Filtrar usuários | Admin |
+| RF26 | Listar usuários | Ver todos os usuários do sistema | Admin |
+| RF27 | Editar usuário | Alterar role de usuário | Admin |
+| RF28 | Filtrar por department | Filtrar usuários | Admin |
 
 ### 2.7 Módulo de Dashboard
 
 | #    | Requisito             | Descrição                                                                          | Prioridade |
 | ---- | --------------------- | ---------------------------------------------------------------------------------- | ---------- |
-| RF28 | Informações e Totais  | Mostrar total de visitantes (mensais e geral) e total de visitantes já expirados   | Alta       |
-| RF29 | Vouchers Ativos       | Card focado em demonstrar a quantidade atual de vouchers válidos e ativos          | Alta       |
-| RF30 | Visitantes por dept   | Card/gráfico apontando a divisão total de visitantes filtrados por departamento    | Alta       |
-| RF31 | Visitantes por mês    | Gráfico da evolução de visitantes no mês corrente e histórico mensal               | Alta       |
-| RF32 | Próximos expirar      | Listagem localizando alertas dos próximos vouchers a expirar dentro de um prazo    | Alta       |
-| RF33 | Visitantes expirados  | Consulta das últimas identidades que expiraram e perderam os acessos               | Alta       |
-| RF34 | Últimas Atividades    | Resumo (timeline) das ultimas 5 alterações efetuadas em sistema (logs unificados)  | Média      |
-| RF35 | Histórico de Lotes    | Log rápido mostrando estatísticas de sucesso/falha das últimas importações (lotes) | Média      |
+| RF29 | Informações e Totais  | Mostrar total de visitantes (mensais e geral) e total de visitantes já expirados   | Alta       |
+| RF30 | Vouchers Ativos       | Card focado em demonstrar a quantidade atual de vouchers válidos e ativos          | Alta       |
+| RF31 | Visitantes por dept   | Card/gráfico apontando a divisão total de visitantes filtrados por departamento    | Alta       |
+| RF32 | Visitantes por mês    | Gráfico da evolução de visitantes no mês corrente e histórico mensal               | Alta       |
+| RF33 | Próximos expirar      | Listagem localizando alertas dos próximos vouchers a expirar dentro de um prazo    | Alta       |
+| RF34 | Visitantes expirados  | Consulta das últimas identidades que expiraram e perderam os acessos               | Alta       |
+| RF35 | Últimas Atividades    | Resumo (timeline) das ultimas 5 alterações efetuadas em sistema (logs unificados)  | Média      |
+| RF36 | Histórico de Lotes    | Log rápido mostrando estatísticas de sucesso/falha das últimas importações (lotes) | Média      |
 
 ### 2.8 Módulo de Rastreabilidade e Auditoria (Activity Logs)
 
 | #    | Requisito                 | Descrição                                                                            | Prioridade |
 | ---- | ------------------------- | ------------------------------------------------------------------------------------ | ---------- |
-| RF36 | Quem executou a ação      | Capturar nome, email, nível de acesso (role) e departamento do autor                 | Alta       |
-| RF37 | Rastreio de Rede/Máquina  | Gravar sempre o **IP** de origem e o **User Agent** (Navegador/Sistema do usuário)   | Alta       |
-| RF38 | Quando executou           | Exibir o `created_at` (carimbo de data/hora oficial) da ação                         | Alta       |
-| RF39 | Log transversal completo  | O sistema deve registrar ações de criação, edição, deleção e disparos em todo o app  | Alta       |
+| RF37 | Quem executou a ação      | Capturar nome, email, nível de acesso (role) e departamento do autor                 | Alta       |
+| RF38 | Rastreio de Rede/Máquina  | Gravar sempre o **IP** de origem e o **User Agent** (Navegador/Sistema do usuário)   | Alta       |
+| RF39 | Quando executou           | Exibir o `created_at` (carimbo de data/hora oficial) da ação                         | Alta       |
+| RF40 | Log transversal completo  | O sistema deve registrar ações de criação, edição, deleção e disparos em todo o app  | Alta       |
 
 **Eventos do ActivityLog:**
 ```
@@ -152,11 +152,11 @@ O ActivityLogs capta transversalmente todo o sistema. Ele registra e salva as m�
 
 | #    | Requisito             | Descrição                                                                               | Prioridade |
 | ---- | --------------------- | --------------------------------------------------------------------------------------- | ---------- |
-| RF40 | Verificação de Prazo  | Comando (Cron) executado varrendo o BD por registros cuja data/hora `expires_at` venceu | Alta       |
-| RF41 | Remoção no Samba      | Executar deletação do usuário temporário diretamente no servidor AD/Samba via serviço   | Alta       |
-| RF42 | Exclusão do Voucher   | Apagar permanentemente a credencial (`voucher`) do Banco de Dados                       | Alta       |
-| RF43 | Auditoria de Baixa    | Registrar evento no `activity_log` e log do sistema assegurando a exclusão automática   | Alta       |
-| RF44 | Redundância de Erros  | Prevenir falhas em lote; se o Samba recusar um usuário, ele pula, registra e segue      | Alta       |
+| RF41 | Verificação de Prazo  | Comando (Cron) executado varrendo o BD por registros cuja data/hora `expires_at` venceu | Alta       |
+| RF42 | Remoção no Samba      | Executar deletação do usuário temporário diretamente no servidor AD/Samba via serviço   | Alta       |
+| RF43 | Exclusão do Voucher   | Apagar permanentemente a credencial (`voucher`) do Banco de Dados                       | Alta       |
+| RF44 | Auditoria de Baixa    | Registrar evento no `activity_log` e log do sistema assegurando a exclusão automática   | Alta       |
+| RF45 | Redundância de Erros  | Prevenir falhas em lote; se o Samba recusar um usuário, ele pula, registra e segue      | Alta       |
 
 **Como funciona a Rotina de Expiração (`visitors:disable-expired`):**
 ```
@@ -222,13 +222,13 @@ A visibilidade dos dados e acessos às telas é controlada diretamente pelo depa
   - **Acesso às Telas:** Possuem acesso a todos os módulos, incluindo as configurações: **Dashboard, Visitantes, Importações, Vouchers, Usuários, Tipos de Visitante, Departamentos** e **Atividades** (Logs).
 
 - **Outros Departamentos (Ex: ASCOM, etc / Operadores)**
-  - **Visibilidade:** Acesso restrito! Esses usuários podem ver *apenas* os visitantes que eles mesmos criaram (mostrar apenas os deles).
+  - **Visibilidade:** Acesso restrito! Esses usuários podem ver *apenas* os visitantes cujo criador pertence ao seu próprio departamento.
   - **Acesso às Telas:** Menu simplificado focado na rotina: **Dashboard, Visitantes, Importações** e **Vouchers**. O resto dos recursos estruturais (Usuários, Departamentos, Tipos, Atividades) ficam ocultos para outras áreas que não a COGETI.
 
 | Perfil / Departamento | Visualiza | Telas de Configuração (Usuários/Dept/Tipos/Acoes) | Permissões (Editar/Deletar) |
 |-----------------------|-----------|---------------------------------------------------|----------------------------|
 | COGETI | Todos do sistema | Acesso Total (Sim) | Todos (Irrestrito) |
-| Demais Departamentos | Apenas os visitantes que eles mesmos criaram | Sem acesso (Oculto) | Apenas no que ele mesmo criou |
+| Demais Departamentos | Apenas visitantes do seu departamento | Sem acesso (Oculto) | Apenas no que ele mesmo criou |
 
 ### 4.3 Expiração
 

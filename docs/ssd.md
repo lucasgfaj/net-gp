@@ -12,9 +12,9 @@ Sistema de Gerenciamento de Visitantes com vouchers temporários para acesso à 
 | PHP | 8.2+ | Linguagem backend base |
 | Laravel | 12.x | Backend Framework |
 | Laravel Starterkit | - | Scaffold oficial englobando o pacote Inertia + React |
-| React | 18.x | Framework frontend |
-| Vite | 6.x | Build tool frontend rápido |
-| Tailwind CSS | 3.x | Framework para estilização (CSS) |
+| React | 19.x | Framework frontend |
+| Vite | 7.x | Build tool frontend rápido |
+| Tailwind CSS | 4.x | Framework para estilização (CSS) |
 | PostgreSQL | 14.x+ | Banco de dados primário |
 | Docker | Latest | Isolamento das aplicações em múltiplos containeres |
 | phpseclib3 | 3.x | Biblioteca de túnel SSH |
@@ -109,7 +109,7 @@ Listagem completa de todos os componentes do sistema Net-GP:
 | Componente | Responsabilidade |
 |-----------|-----------------|
 | `auth` | Verifica sessão autenticada |
-| `verified` | Verifica se usuário tem departamento e role mapeados |
+| `verified` | Verifica email confirmado (`email_verified_at`) — middleware padrão Laravel/Fortify |
 | `admin` | Restringe acesso a usuários com role=admin (COGETI) |
 
 #### 2.2.6 Models
@@ -610,9 +610,12 @@ Jobs que falharam após todas as tentativas.
 1. Usuário acessa /login
 2. Fornece username + password (não email)
 3. LdapService.authenticate(username, password)
-   ├── Conecta no AD
+   ├── Conecta no AD (ldap_connect)
+   ├── Bind como $username@$domain com a senha fornecida
    ├── Busca usuário pelo sAMAccountName
-   ├── Extrai grupos (memberOf)
+   ├── Extrai atributos: sAMAccountName, displayName, userPrincipalName, distinguishedName, memberOf
+   ├── Extrai grupos (memberOf) → CNs maiúsculos
+   ├── Constrói email: sAMAccountName + "@utfpr.edu.br" (fixo)
 4. Mapeia department pelos grupos CN
 5. Mapeia role: COGETI → admin, outros → operator
 6. Cria/atualiza usuário na tabela users
@@ -636,16 +639,22 @@ Jobs que falharam após todas as tentativas.
 ### 5.1 Conexão SSH
 
 - **Biblioteca**: phpseclib3
-- **Autenticação**: Chave privada RSA
-- **Host**: Configurável via variável de ambiente
+- **Autenticação**: Chave privada (suporta RSA, ECDSA, Ed25519 via `PublicKeyLoader`)
+- **Contrato**: Implementa `SambaInterface` com métodos `createSambaUser`, `userExists`, `updateSambaUserPassword`, `deleteSambaUser`
+- **Host/Porta**: Configurável via `config('app.*')`
+- **Debug**: Loga todos os comandos SSH com código de saída e output via `Log::info('DEBUG SAMBA PHPSECLIB')`
+- **Tratamento de erros**: Retorno estruturado `['success' => bool, 'output' => string|null, 'error' => string|null, 'exit_code' => int|null]` com try/catch genérico
 
 ### 5.2 Comandos SSH
 
 | Comando | Descrição |
 |---------|-----------|
-| `samba-tool user create <user> <pass>` | Criar usuário |
-| `samba-tool user setpassword <user> --newpassword=<pass>` | Alterar senha |
-| `samba-tool user delete <user>` | Deletar usuário |
+| `sudo /usr/bin/samba-tool user create <user> <pass>` | Criar usuário (verifica duplicidade antes) |
+| `sudo /usr/bin/samba-tool user list \| grep -w <user>` | Verificar existência do usuário |
+| `sudo /usr/bin/samba-tool user setpassword <user> --newpassword=<pass>` | Alterar senha |
+| `sudo /usr/bin/samba-tool user delete <user>` | Deletar usuário |
+
+> Todos os argumentos são sanitizados com `escapeshellarg()`. A criação de usuário chama `userExists()` primeiro e retorna erro se o usuário já existir (exit_code 255).
 
 ### 5.3 Configurações
 
@@ -656,7 +665,6 @@ return [
     'port_smb' => env('PORT_SMB', 22),
     'user_smb' => env('USER_SMB'),
     'path_ssh_smb' => env('PATH_SSH_SMB'),
-];
 ];
 ```
 
@@ -670,15 +678,29 @@ return [
 php artisan visitors:disable-expired
 ```
 
-Executa **diariamente às 00:00**:
+**Descrição**: `Remove voucher e usuário Samba de visitantes expirados`
 
-1. Busca visitantes com `expires_at <= now()` que possuem voucher
-2. Para cada visitante, abre uma `Transaction` no Banco Isolada:
-    - Extrai CPF numérico → login
-    - Executa remotamente o SSH via `samba-tool user delete <login>` no AD
+**Agendamento** (`routes/console.php`):
+```php
+Schedule::command('visitors:disable-expired')
+    ->dailyAt('00:00')
+    ->withoutOverlapping();
+```
+
+Executa **diariamente às 00:00** (com `->withoutOverlapping()` para evitar execuções concorrentes):
+
+1. Busca visitantes com `expires_at <= now()` que possuem voucher (`whereHas('voucher')`)
+2. Injeta `SambaInterface` e `ActivityLogInterface` via container Laravel
+3. Para cada visitante, abre uma `Transaction` no Banco Isolada:
+    - Extrai CPF numérico → login (`preg_replace('/\D/', '', $visitor->cpf)`)
+    - Executa remotamente o SSH via `$sambaService->deleteSambaUser($login)` no AD
     - Apaga permanentemente o cadastro de voucher da tabela local
-    - Salva a baixa no Activity Log
-    - Dispara o *Commit*. Caso dê erro/timeout de conexão pro servidor Samba, engatilha um *Rollback* exclusívo neste usuário e a fila progride intacta para os demais.
+    - Salva a baixa no Activity Log (`$activityLogService->logVisitorExpired`)
+    - Registra log de sucesso (`Log::info`)
+    - Dispara o *Commit*
+4. Exibe mensagem de conclusão (`$this->info('Processo de expiração finalizado.')`)
+
+Em caso de **qualquer** `Throwable` (erro de conexão, timeout, exceção genérica), executa rollback exclusivo da transação daquele visitante, registra `Log::error` com o visitor_id e mensagem, e a iteração progride intacta para os demais.
 
 ---
 
@@ -686,20 +708,35 @@ Executa **diariamente às 00:00**:
 
 ### 7.1 Rotas Web
 
+#### Públicas (sem middleware)
+
 | Método | Rota | Controller | Nome |
 |--------|------|------------|------|
-| GET | / | - | home |
-| GET | /login | Fortify | login |
+| GET | / | Inertia (auth/login) | home |
+| GET/POST | /login | Fortify | login |
 | POST | /logout | Fortify | logout |
-| GET | /dashboard | Closure | dashboard |
-| GET | /users | UsersController | users.index |
-| PUT | /users/{user} | UsersController | users.update |
-| GET | /departments | DepartmentsController | departments.index |
-| POST | /departments | DepartmentsController | departments.store |
-| GET | /visitorTypes | VisitorTypeController | visitorTypes.index |
+
+#### `auth`
+
+| Método | Rota | Controller | Nome |
+|--------|------|------------|------|
+| GET | /settings/profile | ProfileController | profile.edit |
+| PATCH | /settings/profile | ProfileController | profile.update |
+| DELETE | /settings/profile | ProfileController | profile.destroy |
+| GET | /settings/password | PasswordController | user-password.edit |
+| PUT | /settings/password | PasswordController (throttle:6,1) | user-password.update |
+| GET | /settings/appearance | Inertia render | appearance.edit |
+| GET | /settings/two-factor | TwoFactorAuthenticationController | two-factor.show |
+
+#### `auth, verified`
+
+| Método | Rota | Controller | Nome |
+|--------|------|------------|------|
+| GET | /dashboard | DashboardController | dashboard |
 | GET | /visitors | VisitorsController | visitors.index |
 | POST | /visitors | VisitorsController | visitors.store |
 | GET | /visitors/create | VisitorsController | visitors.create |
+| GET | /visitors/{visitor} | VisitorsController | visitors.show |
 | GET | /visitors/{visitor}/edit | VisitorsController | visitors.edit |
 | PUT | /visitors/{visitor} | VisitorsController | visitors.update |
 | DELETE | /visitors/{visitor} | VisitorsController | visitors.destroy |
@@ -707,21 +744,79 @@ Executa **diariamente às 00:00**:
 | POST | /visitors/{visitor}/resend-password | VisitorsController | visitors.resend-password |
 | GET | /visitors/import | VisitorImportController | visitors.import.index |
 | POST | /visitors/import | VisitorImportController | visitors.import.store |
+| GET | /vouchers | VouchersController | vouchers.index |
+| POST | /vouchers | VouchersController | vouchers.store |
+| GET | /vouchers/create | VouchersController | vouchers.create |
+| GET | /vouchers/{voucher} | VouchersController | vouchers.show |
+| GET | /vouchers/{voucher}/edit | VouchersController | vouchers.edit |
+| PUT | /vouchers/{voucher} | VouchersController | vouchers.update |
+| DELETE | /vouchers/{voucher} | VouchersController | vouchers.destroy |
 | GET | /import-batches | ImportBatchController | importBatches.index |
 | GET | /import-batches/{batch} | ImportBatchController | importBatches.show |
 | DELETE | /import-batches/{batch} | ImportBatchController | importBatches.destroy |
-| GET | /vouchers | VouchersController | vouchers.index |
+
+#### `auth, admin`
+
+| Método | Rota | Controller | Nome |
+|--------|------|------------|------|
+| GET | /users | UsersController | users.index |
+| POST | /users | UsersController | users.store |
+| GET | /users/create | UsersController | users.create |
+| GET | /users/{user} | UsersController | users.show |
+| GET | /users/{user}/edit | UsersController | users.edit |
+| PUT | /users/{user} | UsersController | users.update |
+| DELETE | /users/{user} | UsersController | users.destroy |
+| GET | /activities | ActivitiesController | activities.index |
+| GET | /activities/{activity} | ActivitiesController | activities.show |
+| GET | /departments | DepartmentsController | departments.index |
+| POST | /departments | DepartmentsController | departments.store |
+| GET | /departments/create | DepartmentsController | departments.create |
+| GET | /departments/{department} | DepartmentsController | departments.show |
+| GET | /departments/{department}/edit | DepartmentsController | departments.edit |
+| PUT | /departments/{department} | DepartmentsController | departments.update |
+| DELETE | /departments/{department} | DepartmentsController | departments.destroy |
+| GET | /visitorTypes | VisitorTypeController | visitorTypes.index |
+| POST | /visitorTypes | VisitorTypeController | visitorTypes.store |
+| GET | /visitorTypes/create | VisitorTypeController | visitorTypes.create |
+| GET | /visitorTypes/{visitorType} | VisitorTypeController | visitorTypes.show |
+| GET | /visitorTypes/{visitorType}/edit | VisitorTypeController | visitorTypes.edit |
+| PUT | /visitorTypes/{visitorType} | VisitorTypeController | visitorTypes.update |
+| DELETE | /visitorTypes/{visitorType} | VisitorTypeController | visitorTypes.destroy |
 
 ### 7.2 Middlewares
 
-| Rota | Middleware |
-|------|-------------|
-| /dashboard | auth, verified |
-| /users/* | auth, admin |
-| /departments/* | auth, admin |
-| /visitorTypes/* | auth, admin |
-| /visitors/* | auth, verified |
-| /vouchers/* | auth, verified |
+| Middleware | Implementação | Responsabilidade |
+|-----------|---------------|-----------------|
+| `auth` | Laravel padrão | Verifica sessão autenticada |
+| `verified` | Laravel/Fortify padrão | Verifica email confirmado (`email_verified_at`) |
+| `admin` | `app/Http/Middleware/AdminOnly.php` | Aborta com 403 se `role !== 'admin'` |
+
+### 7.3 Autenticação Fortify
+
+A autenticação é feita via `Laravel\Fortify` configurado em `config/fortify.php`:
+
+- **Guard**: `web`
+- **Username field**: `email` (usuário digita o sAMAccountName no campo de email do formulário)
+- **Home**: `/dashboard` (redirect pós-login)
+- **Lowercase**: `true` (usernames convertidos para minúsculo)
+
+#### Custom Authenticator (`App\Actions\Fortify\AuthenticateUsingLdap`)
+
+Registrado via `Fortify::authenticateUsing(new AuthenticateUsingLdap)` no `FortifyServiceProvider::boot()`.
+
+**Fluxo**:
+1. Recebe `$request->email` (sAMAccountName) + `$request->password`
+2. Chama `LdapService::authenticate()` para bind no AD via UPN (`user@domain`)
+3. Se falhar → retorna `null` (Fortify mostra erro padrão)
+4. Se sucesso → mapeia departamento via `LdapService::mapDepartmentByGroups()`
+5. Se grupo não mapear para nenhum departamento → flash `error` com mensagem explicativa e retorna `null`
+6. Mapeia role via `LdapService::mapRoleByGroups()`: COGETI → `admin`, demais → `operator`
+7. Cria/atualiza usuário com `User::updateOrCreate(['username' => ...], [... 'password' => '$ldap$'])`
+8. Retorna o modelo `User` para o Fortify iniciar a sessão
+
+O campo `password` recebe o valor sentinel `'$ldap$'` (nulo para o hash bcrypt, mas preenchido para não quebrar validações do Laravel).
+
+
 
 ---
 
@@ -729,15 +824,30 @@ Executa **diariamente às 00:00**:
 
 ### 8.1 Papéis (Roles)
 
-| Role | Descrição |
-|------|-----------|
-| `admin` | Acesso total irrestrito (pertencentes ao grupo **COGETI** mapeado no AD) |
-| `operator` | Administrador departamental, operante unicamente nos limites do seu próprio setor |
+| Role | Origem (AD) | Descrição |
+|------|-------------|-----------|
+| `admin` | Grupo **COGETI** mapeado via `LdapService::mapRoleByGroups()` | Acesso total irrestrito |
+| `operator` | Qualquer outro grupo que mapeie um departamento | Restrito ao próprio departamento |
 
-### 8.2 Filtros Departamentais e Telas
+### 8.2 Controle de Acesso por Rota
 
-- **COGETI (Admin)**: Visualiza livremente visitantes e log books de **todos** os departamentos. Possui acesso à todas as configurações sensíveis na lateral.
-- **Outros departamentos**: Visualização cerceada. Conseguem visualizar rigidamente apenas seus visitantes emitidos, e têm painéis de Sistema interceptados/ocultados.
+| Middleware | Rotas protegidas | Lógica |
+|-----------|-----------------|--------|
+| `auth` + `admin` | `/users/*`, `/departments/*`, `/visitorTypes/*`, `/activities/*` | `AdminOnly.php`: `abort(403)` se `role !== 'admin'` |
+| `auth` + `verified` | `/visitors/*`, `/vouchers/*`, `/import-batches/*`, `/dashboard` | Apenas sessão ativa + email verificado |
+
+### 8.3 Filtros Departamentais (Data Level)
+
+Aplicado nas consultas de `Visitor`, `Voucher` e `DashboardController`:
+
+| Role | Comportamento |
+|------|---------------|
+| `admin` | Visualiza visitantes e vouchers de **todos** os departamentos. Pode filtrar por departamento específico na listagem. |
+| `operator` | Visualiza **apenas** registros cujo criador (`created_by`) pertence ao seu próprio departamento. |
+
+**Dashboard** — operadores veem apenas métricas (totais, expirações, gráficos, importações) filtradas ao seu departamento. A listagem de departamentos no gráfico também é limitada.
+
+> **Nota técnica**: O filtro de `Visitor` usa `role === 'admin'`, enquanto `Voucher` e `Dashboard` usam `department_id === 1`. Ambos funcionam para o cenário atual (COGETI = id=1), mas seria mais consistente unificar pela role.
 
 ---
 
@@ -755,12 +865,254 @@ Sendo essa a documentação técnica oficial da versão base validada ("As-Built
 
 ---
 
-## 10. Variáveis de Ambiente Necessárias
+## 10. Fluxo de Criação de Visitante + Voucher
+
+```
+1. POST /visitors (VisitorsController.store)
+2. Validação dos campos (name, cpf, email, phone, type_id, expires_at)
+   ├── name: string 2-255, sem números
+   ├── cpf: único, 11-14 chars, CPFRule (dígitos verificadores)
+   ├── email: único, formato válido
+   ├── expires_at: após now, no máximo 2 anos (4 anos se ano 2030)
+3. VisitorService.create(data)
+   ├── DB::transaction()
+   │   ├── Extrai CPF numérico → login (preg_replace('/\D/', ''))
+   │   ├── Verifica duplicidade no Samba (SambaInterface::userExists)
+   │   ├── Cria Visitor no banco
+   │   ├── Gera senha aleatória (md5(uniqid), 8 chars)
+   │   ├── Cria Voucher (login, password plain text, expires_at)
+   │   ├── Cria usuário no Samba (SambaInterface::createSambaUser)
+   │   ├── Se falha → VisitorException (rollback automático)
+   │   ├── Registra ActivityLog (visitor_created)
+   │   └── Dispara email via Notification (VisitorLogin)
+   └── Retorna Visitor
+4. Redirect → /visitors com flash success (login + email)
+```
+
+### Fluxo de Exclusão
+
+```
+1. DELETE /visitors/{visitor} (VisitorsController.destroy)
+2. VisitorService.delete(visitor, userId)
+   ├── Extrai login do CPF
+   ├── SambaInterface::deleteSambaUser(login)
+   │   └── Se NT_STATUS_NO_SUCH_USER → warning, continua
+   ├── Deleta Voucher do banco
+   ├── ActivityLog (visitor_deleted)
+   └── Deleta Visitor
+```
+
+### Fluxo de Geração de Senha
+
+```
+1. POST /visitors/{visitor}/generate-password
+2. Verifica expires_at não passado
+3. VisitorService.generatePassword(visitor, userId)
+   ├── Gera nova senha (8 chars)
+   ├── Cria ou atualiza Voucher
+   ├── Se novo → SambaInterface::createSambaUser
+   ├── Se existente → SambaInterface::updateSambaUserPassword
+   ├── Dispara email (UpdateVisitorLogin)
+   └── ActivityLog (visitor_password_generated)
+```
+
+---
+
+## 11. VisitorService (`App\Services\VisitorService`)
+
+Implementa `VisitorInterface` e orquestra todas as operações de visitante.
+
+| Método | Descrição | Transação | Samba | Email | ActivityLog |
+|--------|-----------|-----------|-------|-------|-------------|
+| `create(array)` | Cria visitor + voucher + samba + email | `DB::transaction` | `createSambaUser` | `VisitorLogin` | `visitor_created` |
+| `update(Visitor, array, userId)` | Atualiza dados, recria samba se CPF mudou | Não | `deleteSambaUser` + `createSambaUser` ou `updateSambaUserPassword` | - | `visitor_updated` |
+| `delete(Visitor, userId)` | Deleta samba + voucher + visitor | Não | `deleteSambaUser` (continua se not found) | - | `visitor_deleted` |
+| `generatePassword(Visitor, userId)` | Nova senha, atualiza samba, envia email | Não | `createSambaUser` ou `updateSambaUserPassword` | `UpdateVisitorLogin` | `visitor_password_generated` |
+| `resendPassword(Visitor, userId)` | Reenvia email com credenciais existentes | Não | - | `ResendVisitorLogin` | `visitor_password_resent` |
+
+**Dependências injetadas**: `SambaInterface`, `ActivityLogInterface`
+
+**Geração de senha**: `substr(md5(uniqid()), 0, 8)` — 8 caracteres hexadecimais.
+
+---
+
+## 12. EmailService (Notifications)
+
+O sistema não possui um `EmailService` dedicado. Os emails são enviados via **Laravel Notifications** com canal `mail` e template `MailMessage`.
+
+### Notificações
+
+| Notificação | Gatilho | Assunto | Conteúdo |
+|-------------|---------|---------|----------|
+| `VisitorLogin` | Criação de visitante | "Acesso temporário à rede UTFPR - GP" | Login, senha, validade |
+| `UpdateVisitorLogin` | Geração de nova senha | "Acesso temporário à rede UTFPR - GP" | Login, senha atualizada, validade |
+| `ResendVisitorLogin` | Reenvio de credenciais | "Acesso temporário à rede UTFPR - GP" | Login, senha existente, validade |
+| `UserInitialAccess` | Criação de usuário interno | - | - |
+
+### Configuração SMTP
+
+| Variável | Exemplo |
+|----------|---------|
+| `MAIL_MAILER` | smtp |
+| `MAIL_HOST` | mail.dominio.local |
+| `MAIL_PORT` | 587 |
+| `MAIL_USERNAME` | no-reply@dominio.local |
+| `MAIL_PASSWORD` | secret |
+
+---
+
+## 13. ActivityLogService (`App\Services\ActivityLogService`)
+
+Implementa `ActivityLogInterface` e registra eventos de auditoria na tabela `activity_logs`.
+
+### Eventos Registrados
+
+| Evento | Método | Dados armazenados |
+|--------|--------|-------------------|
+| `user_login` | `logLogin()` | ip, user_agent, user_name, user_email, user_role, user_department |
+| `visitor_created` | `logVisitorCreated(id, name, userId)` | visitor_id, visitor_name + dados de contexto |
+| `visitor_updated` | `logVisitorUpdated(id, name, old, new, userId)` | visitor_id, visitor_name, old, new + contexto |
+| `visitor_deleted` | `logVisitorDeleted(id, name, userId)` | visitor_id, visitor_name + contexto |
+| `visitor_password_generated` | `logPasswordGenerated(id, name, userId)` | visitor_id, visitor_name + contexto |
+| `visitor_password_resent` | `logPasswordResent(id, name, userId)` | visitor_id, visitor_name + contexto |
+| `visitor_expired` | `logVisitorExpired(id, login)` | visitor_id, login + contexto |
+| `department_created` | `logDepartmentCreated(id, name, userId)` | department_id, department_name + contexto |
+| `department_deleted` | `logDepartmentDeleted(id, name, userId)` | department_id, department_name + contexto |
+| `visitor_type_created` | `logVisitorTypeCreated(id, name, userId)` | type_id, type_name + contexto |
+| `visitor_type_deleted` | `logVisitorTypeDeleted(id, name, userId)` | type_id, type_name + contexto |
+
+### Dados de Contexto (sempre incluídos)
+
+```json
+{
+  "user_name": "Nome do usuário",
+  "user_email": "email@dominio.local",
+  "user_role": "admin|operator",
+  "user_department": "COGETI",
+  "ip": "192.168.1.100",
+  "user_agent": "Mozilla/5.0..."
+}
+```
+
+---
+
+## 14. Fluxo de Importação em Lote
+
+```
+1. GET /visitors/import → formulário (upload XLSX/XLS/CSV + type_id + expires_at opcionais)
+2. POST /visitors/import (VisitorImportController.store)
+   ├── Valida: file ≤ 5MB, mimes: csv,xlsx,xls
+   ├── Parse: PhpSpreadsheet (XLSX/XLS) ou fgetcsv (CSV)
+   │   └── Remove header row, filtra linhas vazias
+   ├── VisitorImportService.import(rows, userId, filename, expiresAt, typeId)
+   │   ├── Cria ImportBatch (status: processing)
+   │   ├── Para cada linha:
+   │   │   ├── validateRow() → valida nome, CPF (digitos), email, phone, duplicatas
+   │   │   ├── createVisitor() → cria Visitor (type_id default, import_batch_id)
+   │   │   ├── ProcessVisitorImport::dispatch(visitor, batch) → delay 2s por linha
+   │   │   └── Se VisitorException → ImportError com linha + mensagem
+   │   └── Atualiza status: completed / failed
+   └── Redirect → /import-batches com flash success/error
+
+3. ProcessVisitorImport (Queue Job, tries=3, backoff=60s)
+   ├── Extrai login do CPF
+   ├── Gera senha aleatória
+   ├── Cria Voucher no banco
+   ├── SambaInterface::createSambaUser(login, password)
+   ├── Se falha → incrementa error_count, retorna
+   ├── Se sucesso → incrementa success_count
+   ├── Se visitor tem email →
+   │   ├── Notifica VisitorLogin
+   │   ├── Marca email_sent = true, email_sent_at = now
+   └── Em caso de Throwable → incrementa error_count, relança
+       └── failed() → ImportError com row_data
+
+4. Lote deletável via DELETE /import-batches/{batch}
+   ├── Deleta samba user + voucher + visitor de cada linha
+   └── Marca status = deleted
+```
+
+### Estrutura da Planilha
+
+| Coluna | Campo | Obrigatório | Descrição |
+|--------|-------|-------------|-----------|
+| A | nome | Sim | Nome completo (só letras) |
+| B | cpf | Sim | CPF com ou sem máscara |
+| C | email | Sim | Para envio das credenciais |
+| D | telefone | Não | Telefone do visitante |
+| E | motivo | Não | Escola/instituição/motivo |
+| F | expires_at | Não | Data de expiração (default +7 dias) |
+
+---
+
+## 15. Tratamento de Erros
+
+### VisitorException (`App\Exceptions\VisitorException`)
+
+Exceção de domínio usada no fluxo de criação e importação.
+
+| Método estático | VisitorError | HTTP Field |
+|----------------|-------------|------------|
+| `invalidName()` | `INVALID_NAME` | `name` |
+| `invalidCpf()` | `INVALID_CPF` | `cpf` |
+| `invalidCpfLength()` | `INVALID_CPF_LENGTH` | `cpf` |
+| `duplicateCpf()` | `DUPLICATE_CPF` | `cpf` |
+| `invalidEmail()` | `INVALID_EMAIL` | `email` |
+| `duplicateEmail()` | `DUPLICATE_EMAIL` | `email` |
+| `invalidPhone()` | `INVALID_PHONE` | `phone` |
+| `invalidDate()` | `INVALID_DATE` | `expires_at` |
+| `sambaUserExists()` | `SAMBA_USER_EXISTS` | `cpf` |
+| `sambaConnectionError()` | `SAMBA_CONNECTION_ERROR` | `null` (flash) |
+
+### Padrão de uso nos Controllers
+
+```php
+try {
+    $this->visitorService->create($data);
+} catch (VisitorException $e) {
+    if ($e->getField()) {
+        return back()->withErrors([$e->getField() => $e->getMessage()])->withInput();
+    }
+    return back()->withErrors(['samba' => $e->getMessage()])->withInput();
+} catch (\Throwable $e) {
+    // Erro inesperado — mensagem genérica para o usuário
+    return back()->withErrors(['error' => 'Erro interno do servidor. Contate o suporte.'])->withInput();
+}
+```
+
+### Tratamento no Cron (DisableExpiredVisitors)
+
+Cada visitante é processado em transação isolada. Falha em um não afeta os demais:
+
+```php
+foreach ($visitors as $visitor) {
+    DB::beginTransaction();
+    try {
+        // ...operações
+        DB::commit();
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        Log::error('Erro ao processar visitante expirado', [...]);
+        // continua para o próximo
+    }
+}
+```
+
+### Tratamento no Job (ProcessVisitorImport)
+
+O job tem `tries=3` com `backoff=60s`. Após exaurir as tentativas, o método `failed()` registra o erro na tabela `import_errors`.
+
+---
+
+## 16. Variáveis de Ambiente Necessárias
 
 ```env
 # App
-APP_URL=http://localhost
-APP_KEY=base64:...
+APP_NAME=NetGP
+APP_ENV=local
+APP_KEY=
+APP_DEBUG=true
+APP_URL=http://localhost:8000
 
 # Database
 DB_CONNECTION=pgsql
@@ -770,26 +1122,30 @@ DB_DATABASE=net_gp
 DB_USERNAME=postgres
 DB_PASSWORD=secret
 
-# Queue / Sessões
-QUEUE_CONNECTION=database
+# Sessão / Cache / Fila
 SESSION_DRIVER=database
+SESSION_LIFETIME=120
+CACHE_STORE=database
+QUEUE_CONNECTION=database
 
-# SMTP Mail Server
+# SMTP Mail
 MAIL_MAILER=smtp
 MAIL_HOST=mail.dominio.local
 MAIL_PORT=587
 MAIL_USERNAME=no-reply@dominio.local
 MAIL_PASSWORD=secret
+MAIL_ENCRYPTION=STARTTLS
+MAIL_FROM_ADDRESS=no-reply@dominio.local
+MAIL_FROM_NAME="${APP_NAME}"
 
-# LDAP
+# LDAP (config/ldap.php)
 LDAP_HOST=ldap://ldap.dominio.local
 LDAP_PORT=389
 LDAP_BASE_DN=dc=dominio,dc=local
 LDAP_DOMAIN=dominio.local
-LDAP_EMAIL_DOMAIN=dominio.local
 LDAP_ADMIN_GROUP=COGETI
 
-# SSH/Samba
+# SSH/Samba (config/app.php)
 IP_SMB=10.x.x.x
 PORT_SMB=22
 USER_SMB=admin_smb
@@ -798,20 +1154,27 @@ PATH_SSH_SMB=/path/to/private_key
 
 ---
 
-## 11. Glossário
+## 17. Glossário
 
 | Termo | Definição |
 |-------|-----------|
-| LDAP | Lightweight Directory Access Protocol |
-| AD | Active Directory |
-| Voucher | Credenciais de acesso temporárias |
+| AD | Active Directory (Microsoft) |
+| COGETI | Coordenação de Gestão de TI — grupo admin no AD |
 | CPF | Cadastro de Pessoas Físicas |
-| DN | Distinguished Name |
-| CN | Common Name |
-| OU | Organizational Unit |
-| samba-tool | Ferramenta CLI do Samba4 |
+| DN | Distinguished Name (caminho completo de um objeto no AD) |
+| Inertia | Biblioteca que conecta Laravel (backend) com React (frontend) sem API |
+| LDAP | Lightweight Directory Access Protocol |
+| OU | Organizational Unit (container no AD) |
+| phpseclib3 | Biblioteca PHP para conexão SSH segura |
+| PhpSpreadsheet | Biblioteca PHP para leitura de planilhas XLSX/XLS |
+| sAMAccountName | Atributo do AD que armazena o nome de login do usuário |
+| Samba | Software livre que implementa o protocolo Active Directory |
+| sentinel | Valor fixo (`'$ldap$'`) usado no campo `password` para indicar autenticação LDAP |
+| UPN | UserPrincipalName — formato de login `user@domain` |
+| Visitor | Visitante cadastrado no sistema para receber acesso temporário |
+| Voucher | Credenciais de acesso temporárias (login + senha + validade) |
 
 ---
 
-*Documento criado em: 2026-04-29*
+*Documento criado em: 2026-05-21*
 *Versão: 1.0*
