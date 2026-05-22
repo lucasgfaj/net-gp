@@ -13,11 +13,12 @@ Sistema web para gestão de visitantes com criação automática de vouchers de 
 - **Operadores de departamentos**: Criação de visitantes do seu departamento
 - **Visitantes**: Recebem credenciais de acesso temporário
 
-### 1.4 Problema que resolve
-- Gestionar os de visitantes à rede WiFi corporativa
-- Controle de acesso temporário com expiração automática
-- Rastreabilidade completa de quem criou cada acesso
-- Conformidade com políticas de segurança
+### 1.4 Problemas que resolve e Benefícios
+- **Gestão simplificada**: Gerencia o acesso de visitantes à rede WiFi corporativa e login em máquinas.
+- **Integração com Samba**: Benefício direto de criar um usuário temporário que, durante o limite de X dias impostos, permite ao visitante logar nas máquinas físicas e logar na rede normalmente.
+- **Automatização**: Os dados de login e senha gerados são enviados de forma direta por email ao visitante.
+- **Exclusão automática**: Controle de acesso temporário com expiração programada; após o limite, o usuário é removido do Samba.
+- **Rastreabilidade e Conformidade**: Controle completo de quem criou cada acesso para aderência com políticas de segurança.
 
 ---
 
@@ -25,16 +26,16 @@ Sistema web para gestão de visitantes com criação automática de vouchers de 
 
 ### 2.1 Tecnologias
 
-| Tecnologia | Versão | Descrição |
-|------------|--------|-----------|
-| PHP | 8.2+ | Linguagem backend |
-| Laravel | 12.x | Framework PHP |
-| React | 18.x | Framework frontend |
-| Inertia | 2.x | Adapter React para Laravel |
-| Tailwind CSS | 3.x | Framework CSS |
-| MySQL/PostgreSQL | 8.x+ | Banco de dados |
-| Docker | Latest | Containerização |
-| LDAP/AD | - | Autenticação |
+| Tecnologia       | Versão | Descrição                  |
+| ---------------- | ------ | -------------------------- |
+| PHP              | 8.2+   | Linguagem backend          |
+| Laravel          | 12.x   | Framework PHP              |
+| React            | 19.x   | Framework frontend         |
+| Inertia          | 2.x    | Adapter React para Laravel |
+| Tailwind CSS     | 4.x    | Framework CSS              |
+| PostgreSQL       | 14.x+  | Banco de dados             |
+| Docker           | Latest | Containerização            |
+| LDAP/AD          | -      | Autenticação               |
 
 ### 2.2 Módulo de Autenticação
 
@@ -47,25 +48,25 @@ Sistema web para gestão de visitantes com criação automática de vouchers de 
 
 **Fluxo de Login:**
 ```
-1. Usuário acessa /login
-2. Fornece username + password do domínio
-3. Sistema valida no LDAP/AD
-4. Sistema mapeia grupo → department + role
-5. Usuário é logado automaticamente
+1. Usuário acessa /
+2. Fornece username e password do domínio (LDAP)
+3. Sistema valida as credenciais no AD
+4. Sistema mapeia o grupo do usuário para o respectivo departamento no sistema (Ex: ASCOM -> ASCOM).
+5. O sistema verifica as permissões: se o usuário fizer parte do grupo COGETI, lhe é atribuído automaticamente o perfil estrito de "admin" (acesso irrestrito); caso contrário, recebe função de "operador" (restrito ao próprio departamento).
+6. Usuário é logado automaticamente, assumindo as restrições tanto da role definida acima quanto do seu respectivo departamento.
 ```
 
 ### 2.2 Módulo de Visitantes
 
-| # | Requisito | Descrição | Prioridade |
-|---|----------|-----------|------------|
-| RF05 | Listar visitantes | Ver todos os visitantes (filtrado por dept) | Alta |
-| RF06 | Criar visitante | Cadastrar novo visitante com voucher | Alta |
-| RF07 | Editar visitante | Alterar dados do visitante | Alta |
-| RF08 | Excluir visitante | Remover visitante e voucher | Alta |
-| RF09 | Gerar nova senha | Criar nova senha para o voucher | Média |
-| RF10 | Reenviar voucher | Reenviar email com credenciais | Média |
-| RF11 | Filtrar por department | Filtrar visitantes por departamento | Alta |
-| RF12 | Buscar visitante | Buscar por nome, CPF ou email | Alta |
+| #    | Requisito              | Descrição                                                                                  | Prioridade |
+| ---- | ---------------------- | ------------------------------------------------------------------------------------------ | ---------- |
+| RF05 | Listar visitantes      | Ver todos os visitantes (filtrado por dept se for Operador)                                | Alta       |
+| RF06 | Criar visitante        | Cadastrar novo visitante com voucher                                                       | Alta       |
+| RF07 | Editar visitante       | Alterar dados do visitante                                                                 | Alta       |
+| RF08 | Excluir visitante      | Remover visitante, apagar seu voucher e **excluí-lo do Samba** caso o voucher esteja ativo | Alta       |
+| RF09 | Gerar nova senha       | Criar nova senha para o voucher e atualizá-la                                              | Média      |
+| RF10 | Filtrar por department | Filtrar visitantes por departamento                                                        | Alta       |
+| RF11 | Buscar visitante       | Buscar por nome, CPF ou email                                                              | Alta       |
 
 **RF06 - Criar Visitante:**
 ```
@@ -81,106 +82,113 @@ Sistema web para gestão de visitantes com criação automática de vouchers de 
 
 ### 2.3 Módulo de Vouchers
 
-| # | Requisito | Descrição | Prioridade |
-|---|----------|-----------|------------|
-| RF13 | Listar vouchers | Ver todos os vouchers | Alta |
-| RF14 | Filtrar vouchers | Por department, tipo, criador | Alta |
-| RF15 | Ordenar por expiração | Mais próximos a expirar | Média |
-| RF16 | Indicador de expirado | Mostrar vouchers expirados | Alta |
+| #    | Requisito             | Descrição                                                           | Prioridade |
+| ---- | --------------------- | ------------------------------------------------------------------- | ---------- |
+| RF12 | Reenviar voucher      | Função de reenviar email de credenciais pertencente a esta tela     | Média      |
+| RF13 | Listar vouchers       | Ver todos os vouchers                                               | Alta       |
+| RF14 | Filtrar vouchers      | Por department, tipo, criador                                       | Alta       |
+| RF15 | Ordenar por expiração | Mais próximos a expirar                                             | Média      |
+| RF16 | Indicador de expirado | Mostrar visualmente os vouchers expirados                           | Alta       |
+| RF17 | Excluir expirados     | Sistema exclui os vouchers que já estão com a data de expiração vencida | Alta       |
 
 ### 2.4 Módulo de Departamentos
 
 | # | Requisito | Descrição | Prioridade |
 |---|----------|-----------|------------|
-| RF17 | Listar departamentos | Ver todos os departamentos | Alta |
-| RF18 | Criar departamento | Cadastrar novo departamento | Admin |
-| RF19 | Editar departamento | Alterar nome do departamento | Admin |
-| RF20 | Excluir departamento | Remover departamento | Admin |
+| RF18 | Listar departamentos | Ver todos os departamentos | Alta |
+| RF19 | Criar departamento | Cadastrar novo departamento | Admin |
+| RF20 | Editar departamento | Alterar nome do departamento | Admin |
+| RF21 | Excluir departamento | Remover departamento | Admin |
 
 ### 2.5 Módulo de Tipos de Visitante
 
 | # | Requisito | Descrição | Prioridade |
 |---|----------|-----------|------------|
-| RF21 | Listar tipos | Ver tipos de visitante | Alta |
-| RF22 | Criar tipo | Cadastrar novo tipo | Admin |
-| RF23 | Editar tipo | Alterar tipo | Admin |
-| RF24 | Excluir tipo | Remover tipo | Admin |
+| RF22 | Listar tipos | Ver tipos de visitante | Alta |
+| RF23 | Criar tipo | Cadastrar novo tipo | Admin |
+| RF24 | Editar tipo | Alterar tipo | Admin |
+| RF25 | Excluir tipo | Remover tipo | Admin |
 
 ### 2.6 Módulo de Usuários (Admin)
 
 | # | Requisito | Descrição | Prioridade |
 |---|----------|-----------|------------|
-| RF25 | Listar usuários | Ver todos os usuários do sistema | Admin |
-| RF26 | Editar usuário | Alterar role de usuário | Admin |
-| RF27 | Filtrar por department | Filtrar usuários | Admin |
+| RF26 | Listar usuários | Ver todos os usuários do sistema | Admin |
+| RF27 | Editar usuário | Alterar role de usuário | Admin |
+| RF28 | Filtrar por department | Filtrar usuários | Admin |
 
 ### 2.7 Módulo de Dashboard
 
-| # | Requisito | Descrição | Prioridade |
-|---|----------|-----------|------------|
-| RF28 | Visitantes por dept | Card com total por departamento | Alta |
-| RF29 | Usuários por mês | Gráfico de tendência mensal | Alta |
-| RF30 | Próximos expirar | Lista de vouchers que expiram em 7 dias | Alta |
-| RF31 | Visitantes expirados | Lista de visitantes já expirados | Alta |
-| RF32 | Últimas atividades | Lista de últimas ações realizadas | Média |
+| #    | Requisito             | Descrição                                                                          | Prioridade |
+| ---- | --------------------- | ---------------------------------------------------------------------------------- | ---------- |
+| RF29 | Informações e Totais  | Mostrar total de visitantes (mensais e geral) e total de visitantes já expirados   | Alta       |
+| RF30 | Vouchers Ativos       | Card focado em demonstrar a quantidade atual de vouchers válidos e ativos          | Alta       |
+| RF31 | Visitantes por dept   | Card/gráfico apontando a divisão total de visitantes filtrados por departamento    | Alta       |
+| RF32 | Visitantes por mês    | Gráfico da evolução de visitantes no mês corrente e histórico mensal               | Alta       |
+| RF33 | Próximos expirar      | Listagem localizando alertas dos próximos vouchers a expirar dentro de um prazo    | Alta       |
+| RF34 | Visitantes expirados  | Consulta das últimas identidades que expiraram e perderam os acessos               | Alta       |
+| RF35 | Últimas Atividades    | Resumo (timeline) das ultimas 5 alterações efetuadas em sistema (logs unificados)  | Média      |
+| RF36 | Histórico de Lotes    | Log rápido mostrando estatísticas de sucesso/falha das últimas importações (lotes) | Média      |
 
-### 2.8 Módulo de Rastreabilidade
+### 2.8 Módulo de Rastreabilidade e Auditoria (Activity Logs)
 
-| # | Requisito | Descrição | Prioridade |
-|---|----------|-----------|------------|
-| RF33 | Quem criou | Exibir usuário que criou visitante | Alta |
-| RF34 | Quando criou | Exibir data de criação | Alta |
-| RF35 | Qual department | Exibir department do criador | Alta |
-| RF36 | Log de atividades | Registrar todas as ações | Alta |
+| #    | Requisito                 | Descrição                                                                            | Prioridade |
+| ---- | ------------------------- | ------------------------------------------------------------------------------------ | ---------- |
+| RF37 | Quem executou a ação      | Capturar nome, email, nível de acesso (role) e departamento do autor                 | Alta       |
+| RF38 | Rastreio de Rede/Máquina  | Gravar sempre o **IP** de origem e o **User Agent** (Navegador/Sistema do usuário)   | Alta       |
+| RF39 | Quando executou           | Exibir o `created_at` (carimbo de data/hora oficial) da ação                         | Alta       |
+| RF40 | Log transversal completo  | O sistema deve registrar ações de criação, edição, deleção e disparos em todo o app  | Alta       |
 
-**RF33-RF36 - Rastreabilidade:**
+**Eventos do ActivityLog:**
 ```
-Todo visitante criado deve conter:
-- created_by (usuário que criou)
-- created_at (quando criou)
-
-Visitor.creator.department mostra:
-- Nome do criador
-- Department do criador
-
-ActivityLogs registra:
-- create_visitor
-- update_visitor
-- delete_visitor
-- create_voucher
-- disable_expired
-- login
+O ActivityLogs capta transversalmente todo o sistema. Ele registra e salva as métricas de quem fez, onde e qual o IP nas seguintes ações:
+- Visitantes: Criado, Atualizado, Deletado, Nova Senha Gerada, Senha Reenviada e Visitante Expirado
+- Autenticação: Login no sistema
+- Departamentos: Departamento criado, Departamento deletado
+- Tipos de Visitantes: Tipo criado, Tipo deletado
 ```
 
 ### 2.9 Sistema de Expiração Automática
 
-| # | Requisito | Descrição | Prioridade |
-|---|----------|-----------|------------|
-| RF37 | Cron job diário | Executar cleanup diariamente 00:00 | Alta |
-| RF38 | Deletar usuário Samba | Remover usuário do AD | Alta |
-| RF39 | Remover voucher | Remover voucher do BD | Alta |
-| RF40 | Log de expiração | Registrar expiração no activity_log | Alta |
+| #    | Requisito             | Descrição                                                                               | Prioridade |
+| ---- | --------------------- | --------------------------------------------------------------------------------------- | ---------- |
+| RF41 | Verificação de Prazo  | Comando (Cron) executado varrendo o BD por registros cuja data/hora `expires_at` venceu | Alta       |
+| RF42 | Remoção no Samba      | Executar deletação do usuário temporário diretamente no servidor AD/Samba via serviço   | Alta       |
+| RF43 | Exclusão do Voucher   | Apagar permanentemente a credencial (`voucher`) do Banco de Dados                       | Alta       |
+| RF44 | Auditoria de Baixa    | Registrar evento no `activity_log` e log do sistema assegurando a exclusão automática   | Alta       |
+| RF45 | Redundância de Erros  | Prevenir falhas em lote; se o Samba recusar um usuário, ele pula, registra e segue      | Alta       |
+
+**Como funciona a Rotina de Expiração (`visitors:disable-expired`):**
+```
+1. O cron job (Scheduler) dispara o comando que faz uma query: "Visitantes com expires_at <= data atual que ainda possuem Voucher".
+2. O sistema entra num laço (loop) em todos os resultados e abre uma Transação de Banco de Dados.
+3. Via Serviço do Samba, o sistema deleta remotamente o usuário cujo login é o CPF numérico.
+4. Em seguida, deleta-se no banco o vínculo daquele Voucher.
+5. Injeta-se no Histórico o evento de `visitor_expired`.
+6. Enfim, finaliza a alteração ('Commit').
+7. Se durante essa limpeza houver um timeout ou rejeição de conexão pro Samba, a transação daquele usuário falha ('Rollback'), grava-se o erro específico e o script lida com o próximo da fila. O sistema NÃO para por causa de um voucher problemático.
+```
 
 ---
 
 ## 3. Requisitos Não-Funcionais
 
-### 3.1 Segurança
+### 3.1 Segurança da Informação
 
-| # | Requisito | Descrição |
-|---|----------|-----------|
-| RNF01 | Senha não exposta | Não exibir senha em tela |
-| RNF02 | SSH seguro | Usar chave privada para SSH |
-| RNF03 | CSRF protection | Middleware Laravel |
-| RNF04 | Rate limiting | Limitar tentativas de login |
+| #    | Requisito              | Descrição                                                                                                                |
+| ---- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| RNF01 | Omissão de Credencial | Em momento algum o sistema deve exibir senhas de acesso do banco de dados na interface.                                  |
+| RNF02 | Criptografia SSH       | Obrigatório o uso do módulo `phpseclib3` montando a conexão do Samba exclusivamente consumindo *Arquivos de Chave Privada*.|
+| RNF03 | Prevenção de Ataques   | Validações estritas gerenciadas pelo Middleware do Laravel (Proteção contra CSRF, XSS e SQL Injection incorporada).      |
+| RNF04 | Rate Limiting          | Bloqueio automático por excesso de requisições maliciosas injetado nas rotas de Autenticação (`login` e Fortify).        |
 
-### 3.2 Performance
+### 3.2 Performance e Estrutura de Dados
 
-| # | Requisito | Descrição |
-|---|----------|-----------|
-| RNF05 | Paginação | 10-12 itens por página |
-| RNF06 | Cache | Cache em queries frecuentes |
-| RNF07 | Índice CPF | Índice unique em cpf |
+| #    | Requisito              | Descrição                                                                                                              |
+| ---- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| RNF05 | Paginação Eficiente    | Restrição pesada em listagens (Paginators nativos do Laravel enviando 10-15 registros pro Client React por request).   |
+| RNF06 | Escalonamento          | Permitir caching de framework em produções e optimização global para rotas e visualizações (`artisan optimize`).       |
+| RNF07 | Integridade no SGDB    | Prevenir duplicação absoluta construindo, via Migration, um atributo nativo `.unique()` no Índice da coluna `cpf`.     |
 
 ### 3.3 Usabilidade
 
@@ -205,12 +213,22 @@ ActivityLogs registra:
 | RN05 | Senha automática com 8 caracteres |
 | RN06 | Visitante vinculado ao creator |
 
-### 4.2 Permissões por Role
+### 4.2 Permissões e Visibilidade
 
-| Role | Visualiza | Cria | Edita | Deleta |
-|------|----------|------|------|-------|
-| admin | Todos dept | Sim | Todos | Todos |
-| Operador | Seu dept | Sim | Seu dept | Seu dept |
+A visibilidade dos dados e acessos às telas é controlada diretamente pelo departamento do usuário logado (herdado do LDAP):
+
+- **Departamento COGETI (Acesso Geral / Admin)**
+  - **Visibilidade:** Podem acessar, visualizar e gerenciar todos os visitantes de todos os departamentos.
+  - **Acesso às Telas:** Possuem acesso a todos os módulos, incluindo as configurações: **Dashboard, Visitantes, Importações, Vouchers, Usuários, Tipos de Visitante, Departamentos** e **Atividades** (Logs).
+
+- **Outros Departamentos (Ex: ASCOM, etc / Operadores)**
+  - **Visibilidade:** Acesso restrito! Esses usuários podem ver *apenas* os visitantes cujo criador pertence ao seu próprio departamento.
+  - **Acesso às Telas:** Menu simplificado focado na rotina: **Dashboard, Visitantes, Importações** e **Vouchers**. O resto dos recursos estruturais (Usuários, Departamentos, Tipos, Atividades) ficam ocultos para outras áreas que não a COGETI.
+
+| Perfil / Departamento | Visualiza | Telas de Configuração (Usuários/Dept/Tipos/Acoes) | Permissões (Editar/Deletar) |
+|-----------------------|-----------|---------------------------------------------------|----------------------------|
+| COGETI | Todos do sistema | Acesso Total (Sim) | Todos (Irrestrito) |
+| Demais Departamentos | Apenas visitantes do seu departamento | Sem acesso (Oculto) | Apenas no que ele mesmo criou |
 
 ### 4.3 Expiração
 
@@ -224,15 +242,15 @@ ActivityLogs registra:
 
 | Regra | Descrição |
 |-------|-----------|
-| RN10 | Importação processada em background (queue/jobs) |
-| RN11 | CPF validado matematicamente (dígito verificador) |
-| RN12 | CPF único no sistema |
-| RN13 | Email único no sistema |
-| RN14 | Cada visitante do lote cria voucher e usuário no Samba |
-| RN15 | Email enviado individualmente com delay entre envios |
-| RN16 | Erros de importação armazenados com linha e mensagem |
-| RN17 | Linhas vazias são ignoradas na importação |
-| RN18 | total_rows considera apenas linhas válidas |
+| RN10 | Importação processada em background (queue/jobs) disparando jobs em fila do Laravel. |
+| RN11 | CPF validado matematicamente (Cálculo estrutural de dígito verificador). |
+| RN12 | CPF único em todo o sistema. |
+| RN13 | Email único no sistema. |
+| RN14 | Cada visitante do lote cria voucher e usuário no Samba. |
+| RN15 | Email enviado individualmente com controle de Rate (Delay nativo de 2 segundos entre envios). |
+| RN16 | Erros de importação são armazenados contendo número da linha e a mensagem da Exception. |
+| RN17 | Campos vazios levantam `VisitorException`, e caso tudo ocorra bem, é somado ao `success_count`. |
+| RN18 | `total_rows` faz apuração total da quantidade de registros disparados para fila. |
 
 ---
 
@@ -274,112 +292,84 @@ Pós-condições: Visitante pode usar WiFi
 Ator: Sistema (Cron)
 Pré-condições: Cron scheduler ativo
 Fluxo principal:
-1. Cron executa visitors:disable-expired
-2.Sistema busca expires_at <= now()
-3. Para cada visitante:
-   a. Executa SSH → userdel
-   b. Remove voucher
-   c. Registra activity_log
-Pós-condições: Accessos removidos
+1. Cron executa a limpeza de expirados diária
+2. Sistema cria transação e busca Visitantes com data vencida
+3. Sistema acessa arquivo restrito SSH (Samba)
+4. Deleta acesso à máquina remotamente e remove voucher do BD
+5. Salva a exclusão no Log transversal
+Pós-condições: Acesso interrompido preventivamente com segurança
+```
+
+### UC04 - Importação em Lote de Visitantes
+```
+Ator: Operador ou Admin
+Pré-condições: Usuário estar logado num departamento válido
+Fluxo principal:
+1. Usuário acessa Importações e envia planilha base de Visitantes
+2. Sistema varre regras locais (CPF/Email válidos e não duplicados)
+3. Casos em branco ou formatos inválidos caem em Error Log
+4. Sistema aprova os corretos e enfileira (Queue) os processamentos
+5. Sistema atrasa o processo (+2s cada) gerando Vouchers, acessos SSH no Samba e emitindo Emails sucessivamente
+Pós-condições: Lote criado no banco sem gargalos de rede
+```
+
+### UC05 - Exclusão Manual de Visitante (e do Samba)
+```
+Ator: Operador (criador do visitante) ou Admin (COGETI)
+Pré-condições: Visitante existir na listagem
+Fluxo principal:
+1. Operador clica em deletar Visitante
+2. Sistema confere se Voucher daquele visitante está ativo/existente
+3. Acessa o SSH e efetua o bloqueio ativo no AD imediatamente
+4. Apaga registro local de voucher e expurga visitante
+Pós-condições: Visitante errôneo excluído sem sobras computacionais
+```
+
+### UC06 - Reenvio de Gerenciamento de Senha
+```
+Ator: Operador ou Admin
+Pré-condições: Visitante existir com data válida e voucher ativo
+Fluxo principal:
+1. Operador clica para "Gerar Nova Senha" ou "Reenviar Senha"
+2. Sistema confere integridade de limite de tempo (não vencido)
+3. Sobrepõe senha via Samba (se gerar nova) via comando `setpassword`
+4. Dispara e-mail contendo pacote selado e atualizado de login
+Pós-condições: Soluções isoladas garantem estabilidade do serviço
 ```
 
 ---
 
-## 6. Wireframes (Simplificados)
+## 6. Evolução e Melhorias Futuras (Roadmap)
 
-### 6.1 Dashboard
+Como o sistema já se encontra na sua primeira versão pronta ("As-Built"), as pendências ligadas a infraestrutura base (Dashboard, Logs, Importações e Jobs) já foram sanadas. Abaixo constam apenas as melhorias arquitetadas para versões vindouras:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Dashboard                     [Usuário] [Sair]        │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │
-│  │ Total     │  │ Este Mês  │  │ Expirados  │  │
-│  │ 145      │  │ 23       │  │ 12        │  │
-│  └─────────────┘  └─────────────┘  └─────────────┘  │
-│                                                      │
-│  Visitantes por Departamento                             │
-│  ┌─────────────────────────────────────────────────┐│
-│  │ DEPTO_1: 45   ████████████               ││
-│  │ DEPTO_2: 23    ██████                       ││
-│  │ DEPTO_3: 15      ████                         ││
-│  └─────────────────────────────────────────────────┘│
-│                                                      │
-│  Próximos a Expirar (7 dias)                        │
-│  ┌─────────────────────────────────────────────────┐│
-│  │ João Silva  -  30/04/2026  -  DEPTO_1      ││
-│  │ Maria Santos -  01/05/2026  -  DEPTO_2     ││
-│  └─────────────────────────────────────────────────┘│
-│                                                      │
-│  Últimas Atividades                                │
-│  ┌─────────────────────────────────────────────────┐│
-│  │ DEPTO_1\joão criou Maria Silva      10:30       ││
-│  │ DEPTO_2\maria criou João Santos    09:15         ││
-│  └─────────────────────────────────────────────────┘│
-└──────────────────────────────────────────────────────┘
-```
-
-### 6.2 Listagem de Visitantes
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Visitantes                     [+ Novo] [Exportar]        │
-├─────────────────────────────────────────────────────────────┤
-│  ├─[Buscar...────────────────] [Tipo────────] [Dept─]     │
-│  ├───────────────────────────────────────────────────────│
-│  │ Nome         │ CPF         │ Tipo     │ Criado Por  │ Validade │
-│  ├────────────┼────────────┼─────────┼───────────┼─────────┤
-│  │ João Silva │ 123456789 │ Aluno   │ joão/DEPTO_1│ 30/04   │
-│  │ Maria     │ 987654321 │ Professor│ maria/DEPTO_2│ 15/05   │
-│  │ José     │ 456123789 │ Visitante│ joão/DEPTO_1│ Expira  │
-│  └──────────────────────────────────────────────────────┘
-│  < Página 1 de 10 > [1] [2] [3] ...               │
-└───────────────────────────────────────────────────────┘
-```
+| #    | Melhoria                         | Módulo    | Visão Macro do Impacto                                 |
+| ---- | -------------------------------- | --------- | ------------------------------------------------------ |
+| B01  | Recuperação de Senha Segura      | Visitante | Enviar link de Hash para redefinir senha externa       |
+| B02  | Notificações pró-ativas (E-mail) | Sistema   | Criar alertas aos gestores quando o Vouchers expiram   |
+| B03  | Relatórios e Exports PDF/Excel   | Admin     | Permitir exportação tangível dos filtros do Dashboard  |
+| B04  | Módulo Rigoroso de Auditoria     | Admin     | Painel na interface para a COGETI analisar rastros (IP)|
+| B05  | Auto-Connect Wi-Fi (Smart Link)  | Vouchers  | Incluir no e-mail um link mágico ou QR Code para que celulares efetuem login automático na rede sem digitar senha manualmente |
 
 ---
 
-## 7. Pendências e Prioridades
+## 7. Glossário de Termos
 
-### 7.1 Pendências Atuais
-
-| # | Pendência | Módulo | Prioridade |
-|---|----------|--------|-----------|
-| P01 | Adicionar `created_by` em visitor_vouchers | Vouchers | Alta |
-| P02 | Popular activity_logs nos controllers | Rastreabilidade | Alta |
-| P03 | Criar DashboardController | Dashboard | Alta |
-| P04 | Implementar métricas do Dashboard | Dashboard | Alta |
-| P05 | Exibir creator + dept nas listagens | Rastreabilidade | Alta |
-| P06 | Adicionar filtros de expiração | Vouchers | Média |
-| P07 | Importação CSV/XLSX de visitantes | Importação | Alta |
-| P08 | Validação de CPF matemático | Importação | Alta |
-| P09 | Feedback de erros na importação | Importação | Alta |
-| P10 | Processamento em background | Importação | Alta |
-| P11 | Auto-refresh em listagens | UI | Alta |
-| P12 | Queue worker Docker | Infraestrutura | Alta |
-| P13 | Bug: success_count duplicado na importação | Importação | Alta |
-
-| # | Melhoria | Módulo |
-|---|----------|--------|
-| B01 | Enviar link para redefinir senha | Visitante |
-| B02 | Notificações por email | Sistema |
-| B03 | Relatórios PDF/Excel | Admin |
-| B04 | Auditoria completa | Admin |
+| Termo | Definição Corporativa e Técnica |
+|-------|-------------------------------|
+| **Voucher** | Credenciais de acesso digital (login = CPF + senha em hash) temporárias injetadas na rede |
+| **expires_at** | Ponto temporal letal da data de validade onde o usuário perderá o acesso ativo ao AD |
+| **Visitor (Visitante)** | Indivíduo cadastrado no sistema requisitando vínculo; um visitante de fato não interage neste sistema, ele só recebe dados |
+| **Visitor Type** | Categorização do visitante para estatísticas (ex: aluno, fornecedor, palestrante, professor) |
+| **Creator** | Colaborador (Operador) interno autenticado no sistema que assume a tutela/responsabilidade pela confecção daquele visitante |
+| **Department** | Setor do criador. É a base da Restrição de Visão: operadores só assistem aos dados inerentes aos seus departamentos |
+| **COGETI (Admin)** | Equipe/Departamento master com status de *Role Admin* blindado, capaz de ver todo o sistema sem as amarras de "own-department" |
+| **LDAP** | Protocolo corporativo base de diretório (Microsoft AD) utilizado pelo sistema no `/login` para autenticar a equipe automaticamente |
+| **Samba / AD** | Servidor de rede onde efetivamente o Net-GP conecta via **SSH** na criação/expurgos ordenando entrada à máquina da pessoa e WiFi |
+| **ActivityLog** | Livro Razão transacional. Uma tabela transversal que armazena IPs, Nomes e Eventos garantindo 100% de rastreabilidade (Audit Trail) |
+| **Scheduler (Cron)** | Mecanismo passivo executando um loop diário à meia-noite (`disable-expired`) limpando credenciais no sistema com base no expires_at |
+| **ImportBatch / Queue** | Estrutura de Lote. Referência ao processamento massivo via Excel repassando a lentidão limitadora e controlada para o Background Job do Laravel |
 
 ---
 
-## 8. Glossário
-
-| Termo | Definição |
-|-------|-----------|
-| Voucher | Credenciais de acesso (login + senha) temporárias |
-| expires_at | Data de validade do voucher |
-| Visitor | Cadastro do visitante no sistema |
-| VisitorType | Tipo de visitante (aluno, professor, etc) |
-| Creator | Usuário que criou o visitante |
-| Department | Departamento do criador |
-
----
-
-*Documento criado em: 2026-04-29*
-*Versão: 1.0*
+*Documento atualizado referenciando versão "As-Built".*

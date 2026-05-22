@@ -33,10 +33,10 @@ RUN mkdir -p /var/www/.ssh \
     && chown -R www-data:www-data /var/www/.ssh \
     && chmod 700 /var/www/.ssh
 
-COPY docker/ssh/id_ed25519_php /var/www/.ssh/id_ed25519_php
+COPY docker/ssh/net-gp-access /var/www/.ssh/net-gp-access
 
-RUN chown www-data:www-data /var/www/.ssh/id_ed25519_php \
-    && chmod 600 /var/www/.ssh/id_ed25519_php
+RUN chown www-data:www-data /var/www/.ssh/net-gp-access \
+    && chmod 600 /var/www/.ssh/net-gp-access
 
 # Configura timezone para America/Sao_Paulo
 RUN ln -fs /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime \
