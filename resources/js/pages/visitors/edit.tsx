@@ -12,10 +12,9 @@ import {
 import AppLayout from '@/layouts/app-layout';
 import visitors from '@/routes/visitors';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import React, { useEffect } from 'react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import React from 'react';
 import { toast } from 'sonner';
-import { Toaster } from '@/components/ui/sonner';
 
 interface Visitor {
     id: number;
@@ -30,18 +29,6 @@ interface Visitor {
 }
 
 export default function EditVisitor({ visitor, types }: { visitor: Visitor; types: Array<{ id: number; name: string }> }) {
-    const { props } = usePage<{ flash: { success?: string; error?: string } }>();
-    const flash = props.flash;
-
-    useEffect(() => {
-        if (flash.success) {
-            toast.success(flash.success);
-        }
-        if (flash.error) {
-            toast.error(flash.error);
-        }
-    }, [flash.success, flash.error]);
-
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Visitantes', href: visitors.index.get().url },
         { title: 'Editar', href: '#' },
@@ -78,25 +65,12 @@ export default function EditVisitor({ visitor, types }: { visitor: Visitor; type
 
         put(visitors.update({ visitor: visitor.id }).url, {
             preserveScroll: true,
-            onSuccess: (page) => {
-                const success = page.props.flash?.success;
-                if (success) {
-                    toast.success(success);
-                }
-            },
-            onError: (errors) => {
-                const firstError = Object.values(errors)[0];
-                if (firstError) {
-                    toast.error(String(firstError));
-                }
-            },
         });
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Editar Visitante" />
-            <Toaster />
 
             <div className="w-full max-w-4xl p-6">
                 <h1 className="mb-6 text-2xl font-semibold">Editar Visitante</h1>

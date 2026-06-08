@@ -15,9 +15,11 @@ class UsersController extends Controller
     {
         $filters = $request->validated();
 
+        $user = auth()->user();
+
         $query = User::with('department')
             ->search($filters['search'] ?? null)
-            ->departmentFilter($filters['department_id'] ?? null)
+            ->departmentFilter($filters['department_id'] ?? null, $user)
             ->applyOrdering(
                 $filters['order_name'] ?? null,
                 $filters['order_created'] ?? null,
@@ -56,14 +58,13 @@ class UsersController extends Controller
     public function update(Request $request, User $user)
     {
         $request->validate([
-            'role' => ['required', 'in:admin,operator'],
-            'enabled' => ['required', 'boolean'],
+            'active' => ['required', 'in:0,1'],
         ]);
 
-        $user->update([
-            'role' => $request->role,
-            'enabled' => $request->enabled,
-        ]);
+        $user->load('department');
+        $user->syncRoleFromDepartment();
+        $user->enabled = $request->active === '1';
+        $user->save();
 
         return redirect()->route('users.index');
     }

@@ -5,11 +5,8 @@ import AppLayout from '@/layouts/app-layout';
 import visitors from '@/routes/visitors';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useEffect } from 'react';
 import { shortenName } from '@/lib/utils';
 import { ArrowLeft, Edit, Mail, Calendar, Building, User, Send } from 'lucide-react';
-import { toast } from 'sonner';
-import { Toaster } from '@/components/ui/sonner';
 
 interface Visitor {
     id: number;
@@ -47,7 +44,6 @@ interface Props {
 export default function VisitorShow() {
     const { props } = usePage<Props>();
     const { visitor } = props;
-    const flash = props.flash;
 
     const handleResend = () => {
         console.log('CLICOU NO BOTÃO REENVIAR');
@@ -56,15 +52,6 @@ export default function VisitorShow() {
             { preserveState: false }
         );
     };
-
-    useEffect(() => {
-        if (flash?.success) {
-            toast.success(flash.success);
-        }
-        if (flash?.error) {
-            toast.error(flash.error);
-        }
-    }, [flash?.success, flash?.error]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
@@ -75,7 +62,6 @@ export default function VisitorShow() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Visitante: ${shortenName(visitor.name)}`} />
-            <Toaster />
 
             <div className="container mx-auto py-6 max-w-3xl">
                 <div className="flex items-center justify-between mb-6">

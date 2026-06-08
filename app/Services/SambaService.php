@@ -14,6 +14,8 @@ class SambaService implements SambaInterface
     protected string $keyPath;
     protected int $port;
     protected bool $debug = true;
+    protected int $timeout = 10;
+    protected int $connectionTimeout = 5;
 
     public function __construct()
     {
@@ -25,7 +27,8 @@ class SambaService implements SambaInterface
 
     protected function connect(): SSH2
     {
-        $ssh = new SSH2($this->host, $this->port);
+        $ssh = new SSH2($this->host, $this->port, $this->connectionTimeout);
+        $ssh->setTimeout($this->timeout);
 
         $key = PublicKeyLoader::loadPrivateKey(
             file_get_contents($this->keyPath)
