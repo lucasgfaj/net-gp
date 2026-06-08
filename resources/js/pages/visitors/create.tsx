@@ -16,7 +16,6 @@ import { maskCPF, maskPhone } from '@/utils/masks';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { Toaster } from '@/components/ui/sonner';
 
 
 export default function CreateVisitor({ types }: { types: Array<{ id: number; name: string }> }) {
@@ -55,20 +54,7 @@ export default function CreateVisitor({ types }: { types: Array<{ id: number; na
             return;
         }
 
-        post(visitors.store.post().url, {
-            onSuccess: (page) => {
-                const success = page.props.flash?.success;
-                if (success) {
-                    toast.success(success);
-                }
-            },
-            onError: (errors) => {
-                const firstError = Object.values(errors)[0];
-                if (firstError) {
-                    toast.error(String(firstError));
-                }
-            },
-        });
+        post(visitors.store.post().url);
     };
 
     useEffect(() => {
@@ -87,7 +73,6 @@ export default function CreateVisitor({ types }: { types: Array<{ id: number; na
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Criar Visitante" />
-            <Toaster />
 
             <div className="w-full p-4 md:p-6">
                 <h1 className="mb-6 text-2xl font-semibold">Criar Visitante</h1>

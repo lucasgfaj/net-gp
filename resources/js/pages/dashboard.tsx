@@ -5,7 +5,7 @@ import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { usePage, router, Link } from '@inertiajs/react';
 import { shortenName } from '@/lib/utils';
-import { Users, Calendar, Clock, AlertCircle, FileSpreadsheet, CheckCircle, XCircle } from 'lucide-react';
+import { Users, Calendar, Clock, AlertCircle, FileSpreadsheet, CheckCircle, XCircle, Receipt } from 'lucide-react';
 import { useEffect } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -17,6 +17,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 interface DashboardStats {
     totalVisitors: number;
+    totalVouchers: number;
     totalThisMonth: number;
     expiredVisitors: number;
 }
@@ -126,6 +127,20 @@ export default function Dashboard() {
                         <CardContent>
                             <div className="text-2xl font-bold">
                                 {stats.totalVisitors}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                                Total de Vouchers
+                            </CardTitle>
+                            <Receipt className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">
+                                {stats.totalVouchers}
                             </div>
                         </CardContent>
                     </Card>

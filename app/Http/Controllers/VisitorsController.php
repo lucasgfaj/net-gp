@@ -55,6 +55,7 @@ class VisitorsController extends Controller
             'filters' => $filters,
             'types' => VisitorType::select(['id', 'name'])->get(),
             'user_department_id' => $user->department_id,
+            'is_admin' => $user->isAdmin(),
             'departments' => Department::select(['id', 'name'])->get(),
         ]);
     }

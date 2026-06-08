@@ -22,13 +22,21 @@ $user = auth()->user();
         $queryBase = Visitor::query()
             ->whereHas('voucher');
 
-        if ($user->department_id !== 1) {
+        if (!$user->isAdmin()) {
             $queryBase->whereHas('creator', fn ($q) =>
                 $q->where('department_id', $user->department_id)
             );
         }
 
         $totalVisitors = (clone $queryBase)->count();
+
+        $voucherQuery = Voucher::query();
+        if (!$user->isAdmin()) {
+            $voucherQuery->whereHas('visitor.creator', fn ($q) =>
+                $q->where('department_id', $user->department_id)
+            );
+        }
+        $totalVouchers = $voucherQuery->count();
 
         $totalThisMonth = (clone $queryBase)
             ->whereBetween('created_at', [
@@ -42,7 +50,7 @@ $user = auth()->user();
             ->count();
 
         $departments = Department::all();
-        if ($user->department_id !== 1) {
+        if (!$user->isAdmin()) {
             $departments = $departments->where('id', $user->department_id);
         }
 
@@ -83,7 +91,7 @@ $user = auth()->user();
             ->where('expires_at', '>=', $today->startOfDay())
             ->where('expires_at', '<', $today->copy()->addDays(8));
 
-        if ($user->department_id !== 1) {
+        if (!$user->isAdmin()) {
             $nextToExpireQuery->whereHas('visitor.creator', fn ($q) =>
                 $q->where('department_id', $user->department_id)
             );
@@ -101,7 +109,7 @@ $user = auth()->user();
             ->where('expires_at', '<', $today)
             ->whereHas('voucher');
 
-        if ($user->department_id !== 1) {
+        if (!$user->isAdmin()) {
             $alreadyExpiredQuery->whereHas('creator', fn ($q) =>
                 $q->where('department_id', $user->department_id)
             );
@@ -165,7 +173,7 @@ $user = auth()->user();
 
         $importStatsQuery = ImportBatch::query();
         
-        if ($user->department_id !== 1) {
+        if (!$user->isAdmin()) {
             $importStatsQuery->where('created_by', $user->id);
         }
 
@@ -178,7 +186,7 @@ $user = auth()->user();
 
         $recentImportsQuery = ImportBatch::with('creator:id,name');
 
-        if ($user->department_id !== 1) {
+        if (!$user->isAdmin()) {
             $recentImportsQuery->where('created_by', $user->id);
         }
 
@@ -200,6 +208,7 @@ $user = auth()->user();
         return Inertia::render('dashboard', [
             'stats' => [
                 'totalVisitors' => $totalVisitors,
+                'totalVouchers' => $totalVouchers,
                 'totalThisMonth' => $totalThisMonth,
                 'expiredVisitors' => $expiredVisitors,
             ],

@@ -13,7 +13,7 @@ interface VisitorsFiltersProps {
     types: Array<{ id: number; name: string }>;
     onChange: (filters: Record<string, unknown>) => void;
     onClear: () => void;
-    userDepartmentId: number;
+    isAdmin: boolean;
     departments: Array<{ id: number; name: string }>;
 }
 
@@ -22,7 +22,7 @@ export default function VisitorsFilters({
     types,
     onChange,
     onClear,
-    userDepartmentId,
+    isAdmin,
     departments,
 }: VisitorsFiltersProps) {
     const [typeId, setTypeId] = useState(filters?.type_id ?? "all");
@@ -49,7 +49,7 @@ export default function VisitorsFilters({
             params.order_created = orderCreated;
         }
 
-        if (userDepartmentId === 1 && orderDepartment !== "none") {
+        if (isAdmin && orderDepartment !== "none") {
             params.order_department = orderDepartment;
         }
 
@@ -116,7 +116,7 @@ export default function VisitorsFilters({
             </div>
 
             {/* DEPARTAMENTO */}
-            {userDepartmentId === 1 && (
+            {isAdmin && (
                 <div className="flex flex-col gap-2">
                     <label className="font-medium text-sm">Departamento</label>
                     <Select

@@ -48,8 +48,7 @@ public function scopeDepartmentFilter(
     User $user,
     ?int $departmentId
 ): Builder {
-    // COGETI
-    if ($user->department_id === 1) {
+    if ($user->isAdmin()) {
         if ($departmentId && $departmentId !== 'all') {
             return $query->whereHas(
                 'visitor.creator',

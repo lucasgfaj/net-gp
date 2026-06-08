@@ -20,8 +20,6 @@ import debounce from "lodash.debounce";
 import { Edit, Trash2, SlidersHorizontal, FileSpreadsheet } from "lucide-react";
 import { shortenName } from "@/lib/utils";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { Toaster } from "@/components/ui/sonner";
 
 interface Visitor {
     id: number;
@@ -49,6 +47,7 @@ interface PageProps {
     };
     types: unknown;
     user_department_id: unknown;
+    is_admin: boolean;
     departments: unknown;
 }
 
@@ -137,7 +136,6 @@ export default function VisitorsIndex() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Visitantes" />
-            <Toaster />
 
             <div className="flex flex-col gap-4 p-4 sm:p-6">
 
@@ -195,7 +193,7 @@ export default function VisitorsIndex() {
                         types={types}
                         onChange={handleFilterChange}
                         onClear={handleFilterClear}
-                        userDepartmentId={props.user_department_id}
+                        isAdmin={props.is_admin}
                         departments={props.departments}
                     />
                 )}
@@ -257,18 +255,6 @@ export default function VisitorsIndex() {
                                             onConfirm={() =>
                                                 router.delete(visitors.destroy(v.id).url, {
                                                     preserveScroll: true,
-                                                    onSuccess: (page) => {
-                                                        const success = page.props.flash?.success;
-                                                        if (success) {
-                                                            toast.success(success);
-                                                        }
-                                                    },
-                                                    onError: (errors) => {
-                                                        const firstError = Object.values(errors)[0];
-                                                        if (firstError) {
-                                                            toast.error(String(firstError));
-                                                        }
-                                                    },
                                                 })
                                             }
                                             title="Excluir Visitante"

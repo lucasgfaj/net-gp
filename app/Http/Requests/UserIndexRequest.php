@@ -23,7 +23,7 @@ class UserIndexRequest extends FormRequest
     {
        return [
             'search' => ['nullable', 'string', 'max:255'],
-            'type_id' => ['nullable', 'integer', 'exists:visitor_types,id'],
+            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'order_name' => ['nullable', 'in:asc,desc'],
             'order_created' => ['nullable', 'in:newest,oldest'],
             'order_department' => ['nullable', 'integer'],
