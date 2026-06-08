@@ -15,7 +15,7 @@ interface PageProps {
 }
 
 export default function AppLayout({ children, breadcrumbs, ...props }: AppLayoutProps) {
-    const { props: pageProps } = usePage<{ flash?: { success?: string; error?: string }; errors?: { error?: string } }>();
+    const { props: pageProps } = usePage<PageProps>();
     const { flash, errors } = pageProps
 
     useEffect(() => {
