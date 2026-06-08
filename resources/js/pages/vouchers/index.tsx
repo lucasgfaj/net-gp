@@ -17,8 +17,6 @@ import { Head, router, usePage } from "@inertiajs/react";
 import debounce from "lodash.debounce";
 import { SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { Toaster } from "@/components/ui/sonner";
 import { shortenName } from "@/lib/utils";
 
 interface Voucher {
@@ -52,10 +50,6 @@ interface PageProps {
         direction?: string;
     };
     creators: unknown;
-    flash?: {
-        success?: string;
-        error?: string;
-    };
     user_department_id: unknown;
     departments: unknown;
 }
@@ -63,16 +57,6 @@ interface PageProps {
 export default function VouchersIndex() {
     const { props } = usePage<{ props: PageProps }>();
     const { vouchers: paginated, filters, creators } = props;
-    const flash = props.flash;
-
-    useEffect(() => {
-        if (flash?.success) {
-            toast.success(flash.success);
-        }
-        if (flash?.error) {
-            toast.error(flash.error);
-        }
-    }, [flash?.success, flash?.error]);
 
     const [search, setSearch] = useState(filters?.search || "");
     const [showFilters, setShowFilters] = useState(false);
@@ -154,7 +138,6 @@ export default function VouchersIndex() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Vouchers" />
-            <Toaster />
 
             <div className="flex flex-col gap-4 p-4 sm:p-6">
                 {/* HEADER */}

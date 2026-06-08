@@ -20,8 +20,6 @@ import debounce from "lodash.debounce";
 import { Edit, Trash2, SlidersHorizontal, FileSpreadsheet } from "lucide-react";
 import { shortenName } from "@/lib/utils";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { Toaster } from "@/components/ui/sonner";
 
 interface Visitor {
     id: number;
@@ -137,7 +135,6 @@ export default function VisitorsIndex() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Visitantes" />
-            <Toaster />
 
             <div className="flex flex-col gap-4 p-4 sm:p-6">
 
@@ -257,18 +254,6 @@ export default function VisitorsIndex() {
                                             onConfirm={() =>
                                                 router.delete(visitors.destroy(v.id).url, {
                                                     preserveScroll: true,
-                                                    onSuccess: (page) => {
-                                                        const success = page.props.flash?.success;
-                                                        if (success) {
-                                                            toast.success(success);
-                                                        }
-                                                    },
-                                                    onError: (errors) => {
-                                                        const firstError = Object.values(errors)[0];
-                                                        if (firstError) {
-                                                            toast.error(String(firstError));
-                                                        }
-                                                    },
                                                 })
                                             }
                                             title="Excluir Visitante"

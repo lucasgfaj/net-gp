@@ -23,7 +23,6 @@ export default function CreateUser({ departments }: { departments: Array<{ id: n
         name: '',
         email: '',
         password: '',
-        role: 'operator', // default
         department_id: departments.length ? String(departments[0].id) : '',
     });
 
@@ -87,26 +86,6 @@ export default function CreateUser({ departments }: { departments: Array<{ id: n
                             <p className="mt-1 text-sm text-red-500">
                                 {errors.password}
                             </p>
-                        )}
-                    </div>
-
-                    {/* Role */}
-                    <div>
-                        <Label htmlFor="role">Função</Label>
-                        <Select
-                            value={data.role}
-                            onValueChange={(value) => setData('role', value)}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Selecione o papel" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="admin">Administrador</SelectItem>
-                                <SelectItem value="operator">Operador</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        {errors.role && (
-                            <p className="mt-1 text-sm text-red-500">{errors.role}</p>
                         )}
                     </div>
 

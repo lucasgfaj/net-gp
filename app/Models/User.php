@@ -62,6 +62,11 @@ class User extends Authenticatable
         return $this->department_id === $department->id;
     }
 
+    public function syncRoleFromDepartment(): void
+    {
+        $this->role = $this->department?->name === 'COGETI' ? 'admin' : 'operator';
+    }
+
     /**
      * Verifica se é admin pelo papel vindo do AD
      */

@@ -128,7 +128,7 @@ class VisitorService implements VisitorInterface
         if (!$result['success']) {
             $errorMsg = $result['error'] ?? 'Erro desconhecido';
             
-            if (stripos($errorMsg, 'NT_STATUS_NO_SUCH_USER') !== false || stripos($errorMsg, 'not found') !== false) {
+            if (stripos($errorMsg, 'NT_STATUS_NO_SUCH_USER') !== false || stripos($errorMsg, 'not found') !== false || stripos($errorMsg, 'Unable to find user') !== false) {
                 \Log::warning('Usuário SAMBA não encontrado, continuando remoção local', ['login' => $login]);
             } else {
                 \Log::error('Erro ao deletar usuário SAMBA', [

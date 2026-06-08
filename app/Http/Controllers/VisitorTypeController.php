@@ -61,7 +61,8 @@ class VisitorTypeController extends Controller
             auth()->id()
         );
 
-        return redirect()->route('visitorTypes.index');
+        return redirect()->route('visitorTypes.index')
+            ->with('success', 'Tipo de visitante criado com sucesso.');
     }
 
     public function edit(VisitorType $visitorType)
@@ -80,7 +81,8 @@ class VisitorTypeController extends Controller
 
         $visitorType->update($request->only(['name', 'description']));
 
-        return redirect()->route('visitorTypes.index');
+        return redirect()->route('visitorTypes.index')
+            ->with('success', 'Tipo de visitante atualizado com sucesso.');
     }
 
     public function destroy(VisitorType $visitorType, ActivityLogInterface $activityLogService)
@@ -94,6 +96,7 @@ class VisitorTypeController extends Controller
             auth()->id()
         );
 
-        return redirect()->route('visitorTypes.index');
+        return redirect()->route('visitorTypes.index')
+            ->with('success', 'Tipo de visitante excluído com sucesso.');
     }
 }
