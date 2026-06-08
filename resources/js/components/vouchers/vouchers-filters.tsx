@@ -13,7 +13,7 @@ interface VouchersFiltersProps {
     creators: Array<{ id: number; name: string }>;
     onChange: (filters: Record<string, unknown>) => void;
     onClear: () => void;
-    userDepartmentId: number;
+    isAdmin: boolean;
     departments: Array<{ id: number; name: string }>;
 }
 
@@ -22,7 +22,7 @@ export default function VouchersFilters({
     creators,
     onChange,
     onClear,
-    userDepartmentId,
+    isAdmin,
     departments,
 }: VouchersFiltersProps) {
     const [creatorId, setCreatorId] = useState(filters?.creator_id ?? "all");
@@ -38,7 +38,7 @@ export default function VouchersFilters({
         if (creatorId !== "all") params.creator_id = creatorId;
         if (orderExpire !== "none") params.expire_sort = orderExpire;
         if (orderCreated !== "none") params.created_sort = orderCreated;
-        if (userDepartmentId === 1 && orderDepartment !== "none") {
+        if (isAdmin && orderDepartment !== "none") {
             params.order_department = orderDepartment;
         }
 
@@ -104,7 +104,7 @@ export default function VouchersFilters({
             </div>
 
             {/* DEPARTAMENTO */}
-            {userDepartmentId === 1 && (
+            {isAdmin && (
                 <div className="flex flex-col gap-2">
                     <label className="font-medium text-sm">Departamento</label>
                     <Select value={orderDepartment} onValueChange={setOrderDepartment}>

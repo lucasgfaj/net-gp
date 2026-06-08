@@ -25,7 +25,7 @@ class VoucherIndexRequest extends FormRequest
             'search' => ['nullable', 'string', 'max:255'],
             'type_id' => ['nullable', 'integer', 'exists:visitor_types,id'],
             'creator_id' => ['nullable', 'integer', 'exists:users,id'],
-            'order_department' => ['nullable'],
+            'order_department' => ['nullable', 'integer', 'exists:departments,id'],
             'expire_sort' => ['nullable', 'in:closest,furthest'],
             'created_sort' => ['nullable', 'in:newest,oldest'],
             'sort' => ['nullable', 'string', 'in:id,created_at,expires_at,login'],

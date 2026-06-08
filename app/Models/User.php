@@ -99,8 +99,12 @@ class User extends Authenticatable
         });
     }
 
-    public function scopeDepartmentFilter(Builder $query, ?int $departmentId): Builder
+    public function scopeDepartmentFilter(Builder $query, ?int $departmentId, ?User $authUser = null): Builder
     {
+        if ($authUser && !$authUser->isAdmin()) {
+            return $query->where('department_id', $authUser->department_id);
+        }
+
         if (!$departmentId) {
             return $query;
         }

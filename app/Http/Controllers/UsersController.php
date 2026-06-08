@@ -15,9 +15,11 @@ class UsersController extends Controller
     {
         $filters = $request->validated();
 
+        $user = auth()->user();
+
         $query = User::with('department')
             ->search($filters['search'] ?? null)
-            ->departmentFilter($filters['department_id'] ?? null)
+            ->departmentFilter($filters['department_id'] ?? null, $user)
             ->applyOrdering(
                 $filters['order_name'] ?? null,
                 $filters['order_created'] ?? null,

@@ -60,6 +60,7 @@ class VouchersController extends Controller
     'creators' => User::select(['id', 'name'])->get(),
     'departments' => Department::select(['id', 'name'])->get(),
     'user_department_id' => $user->department_id,
+    'is_admin' => $user->isAdmin(),
 ]);
 
     }

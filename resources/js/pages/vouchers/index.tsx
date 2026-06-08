@@ -51,6 +51,7 @@ interface PageProps {
     };
     creators: unknown;
     user_department_id: unknown;
+    is_admin: boolean;
     departments: unknown;
 }
 
@@ -176,7 +177,7 @@ export default function VouchersIndex() {
                         creators={creators}
                         onChange={handleFilterChange}
                         onClear={handleFilterClear}
-                        userDepartmentId={props.user_department_id}
+                        isAdmin={props.is_admin}
                         departments={props.departments}
                     />
                 )}

@@ -47,6 +47,7 @@ interface PageProps {
     };
     types: unknown;
     user_department_id: unknown;
+    is_admin: boolean;
     departments: unknown;
 }
 
@@ -192,7 +193,7 @@ export default function VisitorsIndex() {
                         types={types}
                         onChange={handleFilterChange}
                         onClear={handleFilterClear}
-                        userDepartmentId={props.user_department_id}
+                        isAdmin={props.is_admin}
                         departments={props.departments}
                     />
                 )}
