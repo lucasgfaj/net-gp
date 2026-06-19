@@ -160,7 +160,9 @@ class DashboardController extends Controller
         $this->scopeDepartment($q, 'creator');
 
         $batchIds = (clone $q)->pluck('id');
-        $totalErrors = ImportError::whereIn('import_batch_id', $batchIds)->count();
+        $totalErrors = ImportError::whereIn('import_batch_id', $batchIds)
+            ->where('skipped', false)
+            ->count();
 
         $stats = $q->selectRaw('
                 COUNT(*) as total_batches,
