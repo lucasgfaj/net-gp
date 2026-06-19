@@ -62,7 +62,7 @@ Sistema web para gestão de visitantes com criação automática de vouchers de 
 | ---- | ---------------------- | ------------------------------------------------------------------------------------------ | ---------- |
 | RF05 | Listar visitantes      | Ver todos os visitantes (filtrado por dept se for Operador)                                | Alta       |
 | RF06 | Criar visitante        | Cadastrar novo visitante com voucher                                                       | Alta       |
-| RF07 | Editar visitante       | Alterar dados do visitante                                                                 | Alta       |
+| RF07 | Editar visitante       | Alterar dados do visitante. Flag `reset_password` aciona regeneração de senha, atualização no Samba e envio de email com nova senha. Validação de datas impede datas passadas. | Alta       |
 | RF08 | Excluir visitante      | Remover visitante, apagar seu voucher e **excluí-lo do Samba** caso o voucher esteja ativo | Alta       |
 | RF09 | Gerar nova senha       | Criar nova senha para o voucher e atualizá-la                                              | Média      |
 | RF10 | Filtrar por department | Filtrar visitantes por departamento                                                        | Alta       |
@@ -121,14 +121,14 @@ Sistema web para gestão de visitantes com criação automática de vouchers de 
 
 | #    | Requisito             | Descrição                                                                          | Prioridade |
 | ---- | --------------------- | ---------------------------------------------------------------------------------- | ---------- |
-| RF29 | Informações e Totais  | Mostrar total de visitantes (mensais e geral) e total de visitantes já expirados   | Alta       |
+| RF29 | Informações e Totais  | Mostrar total de visitantes (mensais e geral) e total de visitantes já expirados. **totalVisitors conta todos os visitantes (sem whereHas('voucher')). totalCreatedThisMonth corrigido (bug de mutação Carbon). Dashboard refatorado em métodos privados.** | Alta       |
 | RF30 | Vouchers Ativos       | Card focado em demonstrar a quantidade atual de vouchers válidos e ativos          | Alta       |
-| RF31 | Visitantes por dept   | Card/gráfico apontando a divisão total de visitantes filtrados por departamento    | Alta       |
+| RF31 | Visitantes por dept   | Card/gráfico apontando a divisão total de visitantes filtrados por departamento. **N+1 corrigido: consulta única com GROUP BY em SQL.** | Alta       |
 | RF32 | Visitantes por mês    | Gráfico da evolução de visitantes no mês corrente e histórico mensal               | Alta       |
-| RF33 | Próximos expirar      | Listagem localizando alertas dos próximos vouchers a expirar dentro de um prazo    | Alta       |
-| RF34 | Visitantes expirados  | Consulta das últimas identidades que expiraram e perderam os acessos               | Alta       |
-| RF35 | Últimas Atividades    | Resumo (timeline) das ultimas 5 alterações efetuadas em sistema (logs unificados)  | Média      |
-| RF36 | Histórico de Lotes    | Log rápido mostrando estatísticas de sucesso/falha das últimas importações (lotes) | Média      |
+| RF33 | Próximos expirar      | Listagem localizando alertas dos próximos vouchers a expirar dentro de um prazo. **Paginação client-side (5 por página).** | Alta       |
+| RF34 | Visitantes expirados  | Consulta das últimas identidades que expiraram e perderam os acessos. **Contagem apenas dos últimos 7 dias. Paginação client-side (5 por página).** | Alta       |
+| RF35 | Últimas Atividades    | Resumo (timeline) das últimas alterações efetuadas em sistema (logs unificados). **Usa método getDescription() do model. Paginação client-side (5 por página).** | Média      |
+| RF36 | Histórico de Lotes    | Log rápido mostrando estatísticas de sucesso/falha das últimas importações (lotes). **Paginação client-side (5 por página).** | Média      |
 
 ### 2.8 Módulo de Rastreabilidade e Auditoria (Activity Logs)
 
@@ -160,7 +160,7 @@ O ActivityLogs capta transversalmente todo o sistema. Ele registra e salva as m�
 
 **Como funciona a Rotina de Expiração (`visitors:disable-expired`):**
 ```
-1. O cron job (Scheduler) dispara o comando que faz uma query: "Visitantes com expires_at <= data atual que ainda possuem Voucher".
+1. O cron job (Scheduler) dispara o comando que faz uma query: "Visitantes com expires_at < data atual (meia-noite) que ainda possuem Voucher".
 2. O sistema entra num laço (loop) em todos os resultados e abre uma Transação de Banco de Dados.
 3. Via Serviço do Samba, o sistema deleta remotamente o usuário cujo login é o CPF numérico.
 4. Em seguida, deleta-se no banco o vínculo daquele Voucher.
@@ -234,7 +234,7 @@ A visibilidade dos dados e acessos às telas é controlada diretamente pelo depa
 
 | Regra | Descrição |
 |-------|-----------|
-| RN07 | Visitante expira às 00:00 da data expires_at |
+| RN07 | Visitante expira às 00:00 da data expires_at. Cron usa `< today` (estrito) para não desativar no último dia de acesso. |
 | RN08 | Usuário Samba removido junto |
 | RN09 | Voucher removido da tabela |
 
@@ -244,12 +244,12 @@ A visibilidade dos dados e acessos às telas é controlada diretamente pelo depa
 |-------|-----------|
 | RN10 | Importação processada em background (queue/jobs) disparando jobs em fila do Laravel. |
 | RN11 | CPF validado matematicamente (Cálculo estrutural de dígito verificador). |
-| RN12 | CPF único em todo o sistema. |
-| RN13 | Email único no sistema. |
-| RN14 | Cada visitante do lote cria voucher e usuário no Samba. |
+| RN12 | CPF duplicado na importação → atualiza visitante existente + voucher, não gera erro. |
+| RN13 | Email único no sistema (email duplicado gera erro). |
+| RN14 | Cada visitante do lote cria ou atualiza voucher e usuário no Samba conforme necessidade. |
 | RN15 | Email enviado individualmente com controle de Rate (Delay nativo de 2 segundos entre envios). |
-| RN16 | Erros de importação são armazenados contendo número da linha e a mensagem da Exception. |
-| RN17 | Campos vazios levantam `VisitorException`, e caso tudo ocorra bem, é somado ao `success_count`. |
+| RN16 | Erros de importação são armazenados contendo número da linha, dados da linha e a mensagem da Exception. |
+| RN17 | Erros podem ser corrigidos (editando dados: nome, CPF, email, phone, type, expires_at) e reprocessados, ou pulados sem eliminar o registro. Erro pulado recebe `skipped = true`. |
 | RN18 | `total_rows` faz apuração total da quantidade de registros disparados para fila. |
 
 ---
@@ -293,11 +293,11 @@ Ator: Sistema (Cron)
 Pré-condições: Cron scheduler ativo
 Fluxo principal:
 1. Cron executa a limpeza de expirados diária
-2. Sistema cria transação e busca Visitantes com data vencida
+2. Sistema cria transação e busca Visitantes com expires_at < today (estrito)
 3. Sistema acessa arquivo restrito SSH (Samba)
 4. Deleta acesso à máquina remotamente e remove voucher do BD
 5. Salva a exclusão no Log transversal
-Pós-condições: Acesso interrompido preventivamente com segurança
+Pós-condições: Acesso interrompido preventivamente com segurança. Vouchers não são deletados no último dia de acesso.
 ```
 
 ### UC04 - Importação em Lote de Visitantes
@@ -306,11 +306,13 @@ Ator: Operador ou Admin
 Pré-condições: Usuário estar logado num departamento válido
 Fluxo principal:
 1. Usuário acessa Importações e envia planilha base de Visitantes
-2. Sistema varre regras locais (CPF/Email válidos e não duplicados)
-3. Casos em branco ou formatos inválidos caem em Error Log
-4. Sistema aprova os corretos e enfileira (Queue) os processamentos
-5. Sistema atrasa o processo (+2s cada) gerando Vouchers, acessos SSH no Samba e emitindo Emails sucessivamente
-Pós-condições: Lote criado no banco sem gargalos de rede
+2. Sistema varre regras locais (CPF válido, email válido)
+3. CPF duplicado → atualiza visitante existente + voucher (não gera erro)
+4. Erros de validação (formato inválido, email duplicado) são armazenados como ImportError com número da linha e dados
+5. Sistema aprova os registros válidos e enfileira (Queue) os processamentos
+6. Sistema atrasa o processo (+2s cada) gerando/atualizando Vouchers, acessos SSH no Samba e emitindo Emails sucessivamente
+7. Usuário pode corrigir erros: editar dados (nome, CPF, email, phone, type, expires_at) e reprocessar, ou pular erros
+Pós-condições: Lote criado no banco sem gargalos de rede. Lote auto-completa quando não há erros não-pulados.
 ```
 
 ### UC05 - Exclusão Manual de Visitante (e do Samba)

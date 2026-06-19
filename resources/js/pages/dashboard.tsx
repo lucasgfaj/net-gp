@@ -5,8 +5,8 @@ import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { usePage, router, Link } from '@inertiajs/react';
 import { shortenName } from '@/lib/utils';
-import { Users, Calendar, Clock, AlertCircle, FileSpreadsheet, CheckCircle, XCircle, Receipt } from 'lucide-react';
-import { useEffect } from 'react';
+import { Users, Calendar, Clock, AlertCircle, ChevronLeft, ChevronRight, FileSpreadsheet, CheckCircle, XCircle, Receipt } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -27,6 +27,7 @@ interface DashboardImportStats {
     totalImported: number;
     totalErrors: number;
     totalSuccess: number;
+    totalSkipped: number;
 }
 
 interface DashboardDept {
@@ -86,10 +87,11 @@ interface DashboardPageProps {
     alreadyExpired: DashboardVisitor[];
     recentActivities: DashboardActivity[];
     recentImports: DashboardImport[];
+    [key: string]: unknown;
 }
 
 export default function Dashboard() {
-    const { props } = usePage<{ props: DashboardPageProps }>();
+    const { props } = usePage<DashboardPageProps & { auth: { user: { role: string } } }>();
     const {
         stats,
         importStats,
@@ -98,7 +100,38 @@ export default function Dashboard() {
         alreadyExpired,
         recentActivities,
         recentImports,
+        auth,
     } = props;
+    const isOperator = auth?.user?.role === 'operator';
+    const [expiredPage, setExpiredPage] = useState(1);
+    const [expiringPage, setExpiringPage] = useState(1);
+    const [activityPage, setActivityPage] = useState(1);
+    const [importPage, setImportPage] = useState(1);
+    const perPage = 5;
+
+    const totalExpiredPages = Math.ceil((alreadyExpired?.length || 0) / perPage);
+    const paginatedExpired = alreadyExpired?.slice(
+        (expiredPage - 1) * perPage,
+        expiredPage * perPage
+    );
+
+    const totalExpiringPages = Math.ceil((nextToExpire?.length || 0) / perPage);
+    const paginatedExpiring = nextToExpire?.slice(
+        (expiringPage - 1) * perPage,
+        expiringPage * perPage
+    );
+
+    const totalActivityPages = Math.ceil((recentActivities?.length || 0) / perPage);
+    const paginatedActivities = recentActivities?.slice(
+        (activityPage - 1) * perPage,
+        activityPage * perPage
+    );
+
+    const totalImportPages = Math.ceil((recentImports?.length || 0) / perPage);
+    const paginatedImports = recentImports?.slice(
+        (importPage - 1) * perPage,
+        importPage * perPage
+    );
 
     useEffect(() => {
         const hasProcessingImports = recentImports?.some((r) => r.status === 'processing');
@@ -202,8 +235,11 @@ export default function Dashboard() {
                                 {importStats?.totalErrors || 0}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                {importStats?.totalSuccess || 0} com sucesso
-                            </p>
+                                    {importStats?.totalSuccess || 0} com sucesso
+                                    {importStats?.totalSkipped > 0 && (
+                                        <> • {importStats.totalSkipped} pulados</>
+                                    )}
+                                </p>
                         </CardContent>
                     </Card>
                 </div>
@@ -253,14 +289,14 @@ export default function Dashboard() {
                         <CardContent>
                             {nextToExpire?.length > 0 ? (
                                 <div className="space-y-2">
-                                    {nextToExpire.map((voucher) => (
+                                    {paginatedExpiring.map((voucher) => (
                                         <div
                                             key={voucher.id}
                                             className="flex items-center justify-between"
                                         >
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-medium">
-                                                    {shortenName(voucher.visitor?.name)}
+                                                    {shortenName(voucher.visitor?.name ?? '')}
                                                 </span>
                                                 <span className="text-xs text-muted-foreground">
                                                     {voucher.visitor
@@ -283,6 +319,27 @@ export default function Dashboard() {
                                     Nenhum voucher próximo de expirar
                                 </p>
                             )}
+                            {totalExpiringPages > 1 && (
+                                <div className="flex items-center justify-between mt-4">
+                                    <button
+                                        onClick={() => setExpiringPage(p => Math.max(1, p - 1))}
+                                        disabled={expiringPage === 1}
+                                        className="px-2 py-1 border rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </button>
+                                    <span className="text-xs text-muted-foreground">
+                                        {expiringPage} de {totalExpiringPages}
+                                    </span>
+                                    <button
+                                        onClick={() => setExpiringPage(p => Math.min(totalExpiringPages, p + 1))}
+                                        disabled={expiringPage === totalExpiringPages}
+                                        className="px-2 py-1 border rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <ChevronRight className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 
@@ -293,9 +350,9 @@ export default function Dashboard() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {alreadyExpired?.length > 0 ? (
+                            {paginatedExpired?.length > 0 ? (
                                 <div className="space-y-2">
-                                    {alreadyExpired.map((visitor) => (
+                                    {paginatedExpired.map((visitor) => (
                                         <div
                                             key={visitor.id}
                                             className="flex items-center justify-between"
@@ -322,57 +379,101 @@ export default function Dashboard() {
                                     Nenhum visitante expirado
                                 </p>
                             )}
-                        </CardContent>
-                    </Card>
-
-                    <Card className="overflow-hidden">
-                        <CardHeader>
-                            <CardTitle className="text-base">
-                                Atividades Recentes
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {recentActivities?.length > 0 ? (
-                                <div className="space-y-2">
-                                    {recentActivities.map((activity) => (
-                                        <Link
-                                            key={activity.id}
-                                            href={`/activities/${activity.id}`}
-                                            className="flex items-center justify-between hover:bg-muted/50 p-2 -mx-2 rounded transition-colors"
-                                        >
-                                            <div className="flex flex-col">
-                                                <div className="flex items-center gap-2">
-                                                    {activity.department && (
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {activity.department}
-                                                        </span>
-                                                    )}
-                                                    <span className="text-sm font-medium">
-                                                        {activity.user}
-                                                    </span>
-                                                    {activity.user_role === 'admin' && (
-                                                        <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
-                                                            admin
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {activity.action}
-                                                </span>
-                                            </div>
-                                            <span className="text-xs text-muted-foreground">
-                                                {activity.created_at}
-                                            </span>
-                                        </Link>
-                                    ))}
+                            {totalExpiredPages > 1 && (
+                                <div className="flex items-center justify-between mt-4">
+                                    <button
+                                        onClick={() => setExpiredPage(p => Math.max(1, p - 1))}
+                                        disabled={expiredPage === 1}
+                                        className="px-2 py-1 border rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </button>
+                                    <span className="text-xs text-muted-foreground">
+                                        {expiredPage} de {totalExpiredPages}
+                                    </span>
+                                    <button
+                                        onClick={() => setExpiredPage(p => Math.min(totalExpiredPages, p + 1))}
+                                        disabled={expiredPage === totalExpiredPages}
+                                        className="px-2 py-1 border rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <ChevronRight className="h-4 w-4" />
+                                    </button>
                                 </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground">
-                                    Nenhuma atividade recente
-                                </p>
                             )}
                         </CardContent>
                     </Card>
+
+                    {!isOperator && (
+                        <Card className="overflow-hidden">
+                            <CardHeader>
+                                <CardTitle className="text-base">
+                                    Atividades Recentes
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                            {paginatedActivities?.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {paginatedActivities.map((activity) => (
+                                            <Link
+                                                key={activity.id}
+                                                href={`/activities/${activity.id}`}
+                                                className="flex items-center justify-between hover:bg-muted/50 p-2 -mx-2 rounded transition-colors"
+                                            >
+                                                <div className="flex flex-col">
+                                                    <div className="flex items-center gap-2">
+                                                        {activity.department && (
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {activity.department}
+                                                            </span>
+                                                        )}
+                                                        <span className="text-sm font-medium">
+                                                            {activity.user}
+                                                        </span>
+                                                        {activity.user_role === 'admin' && (
+                                                            <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
+                                                                admin
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {activity.action}
+                                                    </span>
+                                                </div>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {activity.created_at}
+                                                </span>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">
+                                        Nenhuma atividade recente
+                                    </p>
+                                )}
+                                {totalActivityPages > 1 && (
+                                    <div className="flex items-center justify-between mt-4">
+                                        <button
+                                            onClick={() => setActivityPage(p => Math.max(1, p - 1))}
+                                            disabled={activityPage === 1}
+                                            className="px-2 py-1 border rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <ChevronLeft className="h-4 w-4" />
+                                        </button>
+                                        <span className="text-xs text-muted-foreground">
+                                            {activityPage} de {totalActivityPages}
+                                        </span>
+                                        <button
+                                            onClick={() => setActivityPage(p => Math.min(totalActivityPages, p + 1))}
+                                            disabled={activityPage === totalActivityPages}
+                                            className="px-2 py-1 border rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <ChevronRight className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
 
                     <Card className="overflow-hidden">
                         <CardHeader className="flex flex-row items-center justify-between">
@@ -382,9 +483,9 @@ export default function Dashboard() {
                             {/* Botão de ver todas removido temporariamente */}
                         </CardHeader>
                         <CardContent>
-                            {recentImports?.length > 0 ? (
-                                <div className="space-y-2">
-                                    {recentImports.map((batch) => (
+                            {paginatedImports?.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {paginatedImports.map((batch) => (
                                         <div
                                             key={batch.id}
                                             className="flex items-center justify-between hover:bg-muted/50 p-2 rounded"
@@ -411,14 +512,35 @@ export default function Dashboard() {
                                                     {batch.created_at}
                                                 </span>
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground">
-                                    Nenhuma importação realizada
-                                </p>
-                            )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">
+                                        Nenhuma importação realizada
+                                    </p>
+                                )}
+                                {totalImportPages > 1 && (
+                                    <div className="flex items-center justify-between mt-4">
+                                        <button
+                                            onClick={() => setImportPage(p => Math.max(1, p - 1))}
+                                            disabled={importPage === 1}
+                                            className="px-2 py-1 border rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <ChevronLeft className="h-4 w-4" />
+                                        </button>
+                                        <span className="text-xs text-muted-foreground">
+                                            {importPage} de {totalImportPages}
+                                        </span>
+                                        <button
+                                            onClick={() => setImportPage(p => Math.min(totalImportPages, p + 1))}
+                                            disabled={importPage === totalImportPages}
+                                            className="px-2 py-1 border rounded text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <ChevronRight className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                )}
                         </CardContent>
                     </Card>
                 </div>

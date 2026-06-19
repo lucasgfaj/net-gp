@@ -15,6 +15,7 @@ class VisitorImportService
     protected ImportBatch $batch;
     protected string $defaultExpires;
     protected int $defaultTypeId;
+    protected ?string $defaultReason = null;
 
     public function import(
         array $rows,
@@ -22,11 +23,13 @@ class VisitorImportService
         string $filename,
         ?string $expiresAt = null,
         ?int $typeId = null,
-        ?int $totalRows = null
+        ?int $totalRows = null,
+        ?string $defaultReason = null
     ): ImportBatch {
         $this->createdBy = $createdBy;
         $this->defaultExpires = $expiresAt ?? now()->addDays(7)->startOfDay()->format('Y-m-d');
         $this->defaultTypeId = $typeId ?? 1;
+        $this->defaultReason = $defaultReason;
 
         $this->batch = ImportBatch::create([
             'filename' => $filename,
@@ -42,8 +45,24 @@ class VisitorImportService
 
             try {
                 $this->validateRow($row, $line);
-                $visitor = $this->createVisitor($row);
-                $visitor->update(['import_batch_id' => $this->batch->id]);
+
+                $cpf = preg_replace('/\D/', '', $row[1]);
+                $existing = Visitor::where('cpf', $cpf)->first();
+
+                if ($existing) {
+                    $existing->update([
+                        'name' => $row[0],
+                        'email' => !empty($row[2]) ? $row[2] : $existing->email,
+                        'phone' => !empty($row[3]) ? $row[3] : $existing->phone,
+                        'school' => !empty($row[4]) ? $row[4] : $existing->school,
+                        'expires_at' => !empty($row[5]) ? Carbon::parse($row[5])->startOfDay() : $this->defaultExpires,
+                        'import_batch_id' => $this->batch->id,
+                    ]);
+                    $visitor = $existing;
+                } else {
+                    $visitor = $this->createVisitor($row);
+                    $visitor->update(['import_batch_id' => $this->batch->id]);
+                }
 
                 ProcessVisitorImport::dispatch($visitor, $this->batch)
                     ->delay(now()->addSeconds($index * 2));
@@ -124,18 +143,7 @@ class VisitorImportService
             throw VisitorException::invalidEmail();
         }
 
-        if (Visitor::where('cpf', $cpf)->exists()) {
-            throw VisitorException::duplicateCpf($cpf);
-        }
-
-        if (empty($email)) {
-            throw new VisitorException(
-                \App\Enums\VisitorError::INVALID_EMAIL,
-                'Email é obrigatório para enviar login/senha'
-            );
-        }
-
-        if (Visitor::where('email', $email)->exists()) {
+        if (!empty($email) && Visitor::where('email', $email)->where('cpf', '!=', $cpf)->exists()) {
             throw VisitorException::duplicateEmail($email);
         }
     }
@@ -144,7 +152,7 @@ class VisitorImportService
     {
         $name = trim($name);
         
-        if (preg_match('/[\d\p{Punctuation}]/u', $name)) {
+        if (preg_match('/[\d\p{P}]/u', $name)) {
             return false;
         }
         
@@ -235,7 +243,7 @@ protected function isValidPhone(string $phone): bool
         $cpf = preg_replace('/\D/', '', $row[1] ?? '');
         $email = (array_key_exists(2, $row) && trim($row[2] ?? '') !== '') ? trim($row[2]) : null;
         $phone = (array_key_exists(3, $row) && trim($row[3] ?? '') !== '') ? trim($row[3]) : null;
-        $reason = (array_key_exists(4, $row) && trim($row[4] ?? '') !== '') ? trim($row[4]) : null;
+        $reason = (array_key_exists(4, $row) && trim($row[4] ?? '') !== '') ? trim($row[4]) : $this->defaultReason;
 
         $expiresAt = (array_key_exists(5, $row) && trim($row[5] ?? '') !== '')
             ? Carbon::parse($row[5])->startOfDay()->format('Y-m-d')

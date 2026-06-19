@@ -16,7 +16,7 @@ class ImportBatchController extends Controller
     {
         $user = auth()->user();
 
-        $query = ImportBatch::query();
+        $query = ImportBatch::where('status', '!=', 'deleted');
 
         if ($user->department_id !== 1) {
             $query->whereHas('creator', fn ($q) =>
@@ -55,7 +55,8 @@ class ImportBatchController extends Controller
         return Inertia::render('import-batches/show', [
             'batch' => $batch,
             'visitors' => $visitors,
-            'errors' => $errors,
+            'importErrors' => $errors,
+            'types' => \App\Models\VisitorType::select(['id', 'name'])->orderBy('name')->get(),
         ]);
     }
 
@@ -81,6 +82,7 @@ class ImportBatchController extends Controller
 
         $batch->update(['status' => 'deleted']);
 
-        return back()->with('success', 'Lote removido com sucesso.');
+        return redirect()->route('import-batches.show', $batch)
+            ->with('success', 'Lote removido com sucesso.');
     }
 }

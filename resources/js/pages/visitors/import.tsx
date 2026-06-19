@@ -204,6 +204,22 @@ export default function VisitorImport({ types }: VisitorImportProps) {
                                         Data padrão quando não informada
                                     </p>
                                 </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="reason" className="text-sm font-medium">
+                                        Motivo
+                                    </Label>
+                                    <Input
+                                        id="reason"
+                                        name="reason"
+                                        type="text"
+                                        placeholder="Ex: Evento, Palestra, Visita"
+                                        className="w-full"
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Motivo padrão quando não informado no arquivo (opcional)
+                                    </p>
+                                </div>
                             </div>
 
                             <div className="flex justify-end">

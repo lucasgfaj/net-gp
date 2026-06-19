@@ -2,14 +2,19 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/confrm-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import AppLayout from '@/layouts/app-layout';
 import importBatches from '@/routes/import-batches';
 import { type BreadcrumbItem } from '@/types';
 import { Head, usePage, router, Link } from '@inertiajs/react';
-import { Trash2, ArrowLeft, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import { shortenName } from '@/lib/utils';
-import { useEffect } from 'react';
+import { Trash2, ArrowLeft, FileSpreadsheet, RefreshCw, Pencil, SkipForward, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface Visitor {
     id: number;
@@ -31,6 +36,7 @@ interface ImportError {
     line_number: number;
     error_message: string;
     row_data: string[];
+    skipped: boolean;
     created_at: string;
 }
 
@@ -48,6 +54,11 @@ interface Batch {
     };
 }
 
+interface VisitorType {
+    id: number;
+    name: string;
+}
+
 interface Props {
     batch: Batch;
     visitors: {
@@ -57,12 +68,39 @@ interface Props {
         per_page: number;
         total: number;
     };
-    errors: ImportError[];
+    importErrors: ImportError[];
+    types: VisitorType[];
+    [key: string]: unknown;
 }
 
 export default function ImportBatchShow() {
-    const { props, reload } = usePage<Props>();
-    const { batch, visitors, errors } = props;
+    const { props } = usePage<Props>();
+    const { batch, visitors, importErrors, types } = props;
+    const validationErrors = usePage().props.errors as Record<string, string>;
+    const [editingError, setEditingError] = useState<ImportError | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [editForm, setEditForm] = useState({ name: '', cpf: '', email: '', phone: '', reason: '', expires_at: '', type_id: '' });
+
+    const openEdit = (error: ImportError) => {
+        setEditForm({
+            name: error.row_data?.[0] ?? '',
+            cpf: error.row_data?.[1] ?? '',
+            email: error.row_data?.[2] ?? '',
+            phone: error.row_data?.[3] ?? '',
+            reason: error.row_data?.[4] ?? '',
+            expires_at: error.row_data?.[5] ?? '',
+            type_id: String(types?.[0]?.id ?? ''),
+        });
+        setEditingError(error);
+    };
+
+    const handleEditSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingError) return;
+        router.put(`/import-errors/${editingError.id}`, editForm, {
+            preserveScroll: true,
+        });
+    };
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
@@ -73,16 +111,17 @@ export default function ImportBatchShow() {
     useEffect(() => {
         if (batch.status === 'processing') {
             const interval = setInterval(() => {
-                reload();
+                router.reload({ only: ['batch', 'visitors', 'importErrors'] });
             }, 2000);
             return () => clearInterval(interval);
         }
-    }, [batch.status, reload]);
+    }, [batch.status]);
 
     const handleDeleteBatch = () => {
-        if (confirm('Tem certeza que deseja excluir este lote? Todos os visitantes serão removidos.')) {
-            router.delete(importBatches.destroy.url({ batch: batch.id }));
-        }
+        setDeleting(true);
+        router.delete(importBatches.destroy.url({ batch: batch.id }), {
+            onFinish: () => setDeleting(false),
+        });
     };
 
 return (
@@ -107,7 +146,7 @@ return (
                                 )}
                             </h1>
                             <p className="text-xs sm:text-sm text-muted-foreground">
-                                {new Date(batch.created_at).toLocaleDateString('pt-BR')} • {shortenName(batch.creator?.name)}
+                                {new Date(batch.created_at).toLocaleDateString('pt-BR')} • {shortenName(batch.creator?.name ?? '')}
                             </p>
                         </div>
                     </div>
@@ -116,17 +155,22 @@ return (
                             title="Excluir Lote"
                             description="Todos os visitantes e vouchers serão removidos."
                             onConfirm={handleDeleteBatch}
-                        >
-                            <Button variant="destructive" size="sm">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                <span className="hidden sm:inline">Excluir</span>
-                            </Button>
-                        </ConfirmDialog>
+                            trigger={
+                                <Button variant="destructive" size="sm" disabled={deleting}>
+                                    {deleting ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                    )}
+                                    <span>{deleting ? 'Excluindo...' : 'Excluir'}</span>
+                                </Button>
+                            }
+                        />
                     )}
                 </div>
 
                 {/* Estatísticas */}
-                <div className="grid grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                     <Card className="py-3">
                         <CardContent className="py-0">
                             <div className="text-2xl font-bold">{batch.total_rows}</div>
@@ -147,8 +191,8 @@ return (
                     </Card>
                     <Card className="py-3">
                         <CardContent className="py-0">
-                            <Badge variant={batch.status === 'completed' ? 'default' : batch.status === 'failed' ? 'destructive' : 'secondary'}>
-                                {batch.status}
+                            <Badge variant={batch.status === 'completed' ? 'default' : batch.status === 'failed' ? 'destructive' : 'secondary'} className="whitespace-nowrap text-xs">
+                                {batch.status === 'completed' ? 'Completo' : batch.status === 'processing' ? 'Processando' : batch.status === 'failed' ? 'Falhou' : batch.status === 'deleted' ? 'Deletado' : batch.status}
                             </Badge>
                             <div className="text-xs text-muted-foreground mt-1">Status</div>
                         </CardContent>
@@ -156,11 +200,11 @@ return (
                 </div>
 
                 {/* Erros */}
-                    {errors.length > 0 && (
+                    {importErrors.length > 0 && (
                         <Card>
                             <CardHeader className="py-3">
                                 <CardTitle className="text-base flex items-center gap-2">
-                                    Erros ({errors.length})
+                                    Erros ({importErrors.length})
                                 </CardTitle>
                             </CardHeader>
                             <Table>
@@ -169,15 +213,63 @@ return (
                                         <TableHead className="font-semibold w-16">Linha</TableHead>
                                         <TableHead className="font-semibold">Erro</TableHead>
                                         <TableHead className="font-semibold">Dados</TableHead>
+                                        <TableHead className="w-24 text-center">Ações</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {errors.map((error) => (
-                                        <TableRow key={error.id}>
+                                    {importErrors.map((error) => (
+                                        <TableRow key={error.id} className={error.skipped ? 'opacity-60' : ''}>
                                             <TableCell className="font-mono text-sm">{error.line_number}</TableCell>
-                                            <TableCell className="text-sm text-red-600">{error.error_message}</TableCell>
-                                            <TableCell className="text-sm text-muted-foreground font-mono">
+                                            <TableCell className="text-sm">
+                                                {error.skipped ? (
+                                                    <Badge variant="secondary">Pulado</Badge>
+                                                ) : (
+                                                    <span className="text-red-600">{error.error_message}</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-sm text-muted-foreground font-mono truncate max-w-[200px]">
                                                 {error.row_data ? error.row_data.join(' | ') : '-'}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                {error.skipped ? (
+                                                    <span className="text-xs text-muted-foreground">Pulado</span>
+                                                ) : (
+                                                    <div className="flex justify-center gap-1">
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(error)}>
+                                                                        <Pencil className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Editar erro</TooltipContent>
+                                                            </Tooltip>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => router.post(`/import-errors/${error.id}/skip`, {}, { preserveScroll: true })}>
+                                                                        <SkipForward className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Pular erro</TooltipContent>
+                                                            </Tooltip>
+                                                            <ConfirmDialog
+                                                                title="Remover Erro"
+                                                                description="Tem certeza que deseja remover este erro?"
+                                                                onConfirm={() => { router.delete(`/import-errors/${error.id}`); }}
+                                                                trigger={
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700">
+                                                                                <Trash2 className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>Deletar erro</TooltipContent>
+                                                                    </Tooltip>
+                                                                }
+                                                            />
+                                                        </TooltipProvider>
+                                                    </div>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -235,6 +327,65 @@ return (
                     </Table>
                 </Card>
             </div>
+            {/* Modal de edição de erro */}
+            <Dialog open={!!editingError} onOpenChange={(open) => !open && setEditingError(null)}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Editar Registro</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleEditSubmit} className="space-y-4">
+                        {validationErrors?.edit_error && (
+                            <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                                {validationErrors.edit_error}
+                            </div>
+                        )}
+                        <div className="grid gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="name">Nome</Label>
+                                <Input id="name" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} required />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="cpf">CPF</Label>
+                                <Input id="cpf" value={editForm.cpf} onChange={e => setEditForm(f => ({ ...f, cpf: e.target.value }))} required />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="email">Email</Label>
+                                <Input id="email" type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="phone">Telefone</Label>
+                                <Input id="phone" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="reason">Motivo</Label>
+                                <Input id="reason" value={editForm.reason} onChange={e => setEditForm(f => ({ ...f, reason: e.target.value }))} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>Tipo</Label>
+                                <Select value={editForm.type_id} onValueChange={v => setEditForm(f => ({ ...f, type_id: v }))}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione o tipo" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {types?.map(t => (
+                                            <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="expires_at">Expira em</Label>
+                                <Input id="expires_at" type="date" value={editForm.expires_at} onChange={e => setEditForm(f => ({ ...f, expires_at: e.target.value }))} />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setEditingError(null)}>Cancelar</Button>
+                            <Button type="submit">Salvar e Reenviar</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
         </AppLayout>
     );
 }
