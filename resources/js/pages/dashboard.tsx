@@ -27,6 +27,7 @@ interface DashboardImportStats {
     totalImported: number;
     totalErrors: number;
     totalSuccess: number;
+    totalSkipped: number;
 }
 
 interface DashboardDept {
@@ -234,8 +235,11 @@ export default function Dashboard() {
                                 {importStats?.totalErrors || 0}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                {importStats?.totalSuccess || 0} com sucesso
-                            </p>
+                                    {importStats?.totalSuccess || 0} com sucesso
+                                    {importStats?.totalSkipped > 0 && (
+                                        <> • {importStats.totalSkipped} pulados</>
+                                    )}
+                                </p>
                         </CardContent>
                     </Card>
                 </div>

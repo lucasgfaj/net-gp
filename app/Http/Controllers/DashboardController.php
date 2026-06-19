@@ -164,6 +164,10 @@ class DashboardController extends Controller
             ->where('skipped', false)
             ->count();
 
+        $totalSkipped = ImportError::whereIn('import_batch_id', $batchIds)
+            ->where('skipped', true)
+            ->count();
+
         $stats = $q->selectRaw('
                 COUNT(*) as total_batches,
                 COALESCE(SUM(total_rows), 0) as total_imported,
@@ -175,6 +179,7 @@ class DashboardController extends Controller
             'totalImported' => $stats->total_imported ?? 0,
             'totalSuccess' => $stats->total_success ?? 0,
             'totalErrors' => $totalErrors,
+            'totalSkipped' => $totalSkipped,
         ];
     }
 
