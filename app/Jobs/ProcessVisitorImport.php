@@ -30,20 +30,32 @@ class ProcessVisitorImport implements ShouldQueue
     {
         try {
             $login = preg_replace('/\D/', '', $this->visitor->cpf);
-            $passwordPlain = substr(md5(uniqid()), 0, 8);
+            $voucher = Voucher::where('visitor_id', $this->visitor->id)->first();
+            $isNewVoucher = false;
 
-            Voucher::create([
-                'visitor_id' => $this->visitor->id,
-                'login' => $login,
-                'password' => $passwordPlain,
-                'expires_at' => $this->visitor->expires_at,
-                'created_by' => $this->visitor->created_by,
-            ]);
+            if ($voucher) {
+                $voucher->update([
+                    'expires_at' => $this->visitor->expires_at,
+                ]);
 
-            $result = $sambaService->createSambaUser($login, $passwordPlain);
+                $result = $sambaService->updateSambaUserExpiry($login, $this->visitor->expires_at);
+            } else {
+                $isNewVoucher = true;
+                $passwordPlain = substr(md5(uniqid()), 0, 8);
+
+                $voucher = Voucher::create([
+                    'visitor_id' => $this->visitor->id,
+                    'login' => $login,
+                    'password' => $passwordPlain,
+                    'expires_at' => $this->visitor->expires_at,
+                    'created_by' => $this->visitor->created_by,
+                ]);
+
+                $result = $sambaService->createSambaUser($login, $passwordPlain);
+            }
 
             if (!$result['success']) {
-                Log::error("Erro ao criar usuário Samba", [
+                Log::error("Erro ao processar usuário Samba", [
                     'visitor_id' => $this->visitor->id,
                     'error' => $result['error'] ?? 'Erro desconhecido'
                 ]);
@@ -51,12 +63,14 @@ class ProcessVisitorImport implements ShouldQueue
                 return;
             }
 
-            $this->batch->increment('success_count');
+            if ($isNewVoucher) {
+                $this->batch->increment('success_count');
+            }
 
-            if ($this->visitor->email) {
+            if ($this->visitor->email && !$this->visitor->email_sent) {
                 $this->visitor->notify(new VisitorLogin(
                     email: $login,
-                    password: $passwordPlain,
+                    password: $voucher->password,
                     expiresAt: $this->visitor->expires_at->format('d/m/Y H:i')
                 ));
 
@@ -66,9 +80,10 @@ class ProcessVisitorImport implements ShouldQueue
                 ]);
             }
 
-            Log::info("Visitante importado com sucesso", [
+            Log::info("Visitante processado com sucesso", [
                 'visitor_id' => $this->visitor->id,
                 'name' => $this->visitor->name,
+                'type' => $voucher->wasRecentlyCreated ? 'criado' : 'atualizado',
                 'email_sent' => $this->visitor->email_sent,
             ]);
 
@@ -77,7 +92,6 @@ class ProcessVisitorImport implements ShouldQueue
                 'visitor_id' => $this->visitor->id,
                 'error' => $e->getMessage()
             ]);
-            $this->batch->increment('error_count');
             throw $e;
         }
     }

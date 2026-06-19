@@ -78,6 +78,7 @@ class VisitorService implements VisitorInterface
         $userId = $userId ?? $visitor->created_by;
         
         $oldCpf = preg_replace('/\D/', '', $visitor->cpf);
+        $oldExpiresAt = $visitor->expires_at?->format('Y-m-d');
 
         $visitor->update([
             'name' => $data['name'],
@@ -90,7 +91,9 @@ class VisitorService implements VisitorInterface
         ]);
 
         $newCpf = preg_replace('/\D/', '', $visitor->cpf);
+        $newExpiresAt = $visitor->expires_at->format('Y-m-d');
         $cpfChanged = $oldCpf !== $newCpf;
+        $expiresAtChanged = $oldExpiresAt !== $newExpiresAt;
 
         $voucher = Voucher::firstOrNew(['visitor_id' => $visitor->id]);
 
@@ -113,6 +116,10 @@ class VisitorService implements VisitorInterface
         $voucher->login = $newCpf;
         $voucher->expires_at = $visitor->expires_at;
         $voucher->save();
+
+        if ($expiresAtChanged) {
+            $this->sambaService->updateSambaUserExpiry($newCpf, $visitor->expires_at);
+        }
 
         $this->activityLogService->logVisitorUpdated($visitor->id, $visitor->name, [], [], $userId);
 
@@ -211,6 +218,8 @@ class VisitorService implements VisitorInterface
                 password: $voucher->password,
                 expiresAt: $visitor->expires_at->format('d/m/Y H:i')
             ));
+
+            $visitor->update(['email_sent' => true, 'email_sent_at' => now()]);
         }
 
         $this->activityLogService->logPasswordResent($visitor->id, $visitor->name, $userId);

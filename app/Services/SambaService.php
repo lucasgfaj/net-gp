@@ -114,6 +114,17 @@ class SambaService implements SambaInterface
         ));
     }
 
+    public function updateSambaUserExpiry(string $username, string $expiresAt): array
+    {
+        $date = \Carbon\Carbon::parse($expiresAt)->format('Y-m-d');
+
+        return $this->execute(sprintf(
+            'sudo /usr/bin/samba-tool user setexpiry %s --days=0 --date=%s',
+            escapeshellarg($username),
+            escapeshellarg($date)
+        ));
+    }
+
     public function deleteSambaUser(string $username): array
     {
         return $this->execute(sprintf(

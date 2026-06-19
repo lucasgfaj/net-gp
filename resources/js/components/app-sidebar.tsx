@@ -70,6 +70,7 @@ const mainNavItems: NavItem[] = [
         href: importBatches.index(),
         icon: FileSpreadsheet,
     },
+
     {
         title: 'Atividades',
         href: activities.index(),
@@ -91,12 +92,12 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
-    const { auth } = usePage().props as { auth: { user: { role: string } } };
+    const { auth } = usePage().props as unknown as { auth: { user: { role: string } } };
     const role = auth.user.role;
 
     const filterMainNavItems = mainNavItems.filter((item) => {
         if (role === 'operator') {
-            return !['Departamentos', 'Usuários', 'Tipo de Visitante', 'Importações', 'Atividades'].includes(item.title);
+            return !['Departamentos', 'Usuários', 'Tipo de Visitante', 'Atividades'].includes(item.title);
         }
         if (role !== 'admin') {
             return !['Usuários', 'Atividades'].includes(item.title);

@@ -59,8 +59,8 @@ class HandleInertiaRequests extends Middleware
                 }
             ],
             'flash' => [
-                'success' => fn() => $request->session()->get('success'),
-                'error' => fn() => $request->session()->get('error'),
+                'success' => fn() => $request->session()->pull('success'),
+                'error' => fn() => $request->session()->pull('error'),
             ],
             'quote' => function () {
                 [$message, $author] = str(Inspiring::quotes()->random())->explode('-');

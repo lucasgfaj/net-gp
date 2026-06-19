@@ -16,7 +16,7 @@
         "laravel/tinker": "^2.10.1",
         "laravel/wayfinder": "^0.1.9",
         "league/csv": "^9.0",
-        "phpoffice/phpspreadsheet": "^2.0",
+        "phpoffice/phpspreadsheet": "*",
         "phpseclib/phpseclib": "^3.0"
     },
     "require-dev": {

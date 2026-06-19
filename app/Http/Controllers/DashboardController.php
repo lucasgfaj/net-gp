@@ -3,195 +3,192 @@
 namespace App\Http\Controllers;
 
 use App\Models\Visitor;
-use App\Models\Department;
 use App\Models\ActivityLog;
 use App\Models\Voucher;
 use App\Models\ImportBatch;
+use App\Models\ImportError;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-$user = auth()->user();
+        $user = auth()->user();
         $today = Carbon::today()->utc();
         $now = Carbon::now();
 
-        $queryBase = Visitor::query()
-            ->whereHas('voucher');
+        return Inertia::render('dashboard', [
+            'stats' => [
+                'totalVisitors' => $this->totalVisitors($user),
+                'totalVouchers' => $this->totalVouchers($user),
+                'totalThisMonth' => $this->totalCreatedThisMonth(),
+                'expiredVisitors' => $this->expiredVisitorCount($today),
+            ],
+            'importStats' => $this->importStats($user),
+            'visitorsByDepartment' => $this->visitorsByDepartment($user),
+            'visitorsByMonth' => $this->visitorsByMonth($user, $now),
+            'nextToExpire' => $this->nextToExpire($user, $today),
+            'alreadyExpired' => $this->alreadyExpired($user, $today),
+            'recentActivities' => $this->recentActivities($user),
+            'recentImports' => $this->recentImports($user),
+        ]);
+    }
 
-        if (!$user->isAdmin()) {
-            $queryBase->whereHas('creator', fn ($q) =>
-                $q->where('department_id', $user->department_id)
-            );
+    private function scopeDepartment(Builder $query, string $relation): void
+    {
+        $user = auth()->user();
+        if ($user->isAdmin()) {
+            return;
         }
 
-        $totalVisitors = (clone $queryBase)->count();
+        $query->whereHas($relation, fn ($q) =>
+            $q->where('department_id', $user->department_id)
+        );
+    }
 
-        $voucherQuery = Voucher::query();
-        if (!$user->isAdmin()) {
-            $voucherQuery->whereHas('visitor.creator', fn ($q) =>
-                $q->where('department_id', $user->department_id)
-            );
-        }
-        $totalVouchers = $voucherQuery->count();
+    private function totalVisitors($user): int
+    {
+        $q = Visitor::query();
+        $this->scopeDepartment($q, 'creator');
 
-        $totalThisMonth = (clone $queryBase)
-            ->whereBetween('created_at', [
-                $today->copy()->startOfMonth(),
-                $today->copy()->endOfMonth(),
-            ])
+        return $q->count();
+    }
+
+    private function totalVouchers($user): int
+    {
+        $q = Voucher::query();
+        $this->scopeDepartment($q, 'visitor.creator');
+
+        return $q->count();
+    }
+
+    private function totalCreatedThisMonth(): int
+    {
+        return Visitor::whereYear('created_at', now()->year)
+            ->whereMonth('created_at', now()->month)
             ->count();
+    }
 
-        $expiredVisitors = (clone $queryBase)
-            ->where('expires_at', '<', $today)
+    private function expiredVisitorCount(Carbon $today): int
+    {
+        return Visitor::where('expires_at', '<=', $today)
+            ->where('expires_at', '>=', $today->copy()->subDays(7)->startOfDay())
             ->count();
+    }
 
-        $departments = Department::all();
+    private function visitorsByDepartment($user): Collection
+    {
+        $q = Visitor::selectRaw('users.department_id, departments.name, COUNT(*) as count')
+            ->join('users', 'visitors.created_by', '=', 'users.id')
+            ->join('departments', 'users.department_id', '=', 'departments.id');
+
         if (!$user->isAdmin()) {
-            $departments = $departments->where('id', $user->department_id);
+            $q->where('users.department_id', $user->department_id);
         }
 
-        $visitorsByDepartment = $departments
-            ->map(function ($department) use ($queryBase) {
-                $count = (clone $queryBase)
-                    ->whereHas('creator', function ($q) use ($department) {
-                        $q->where('department_id', $department->id);
-                    })
-                    ->count();
+        return $q->groupBy('users.department_id', 'departments.name')
+            ->orderByDesc('count')
+            ->get()
+            ->map(fn ($row) => [
+                'id' => $row->department_id,
+                'name' => $row->name,
+                'count' => (int) $row->count,
+            ]);
+    }
 
-                return [
-                    'id' => $department->id,
-                    'name' => $department->name,
-                    'count' => $count,
-                ];
-            })
-            ->filter(fn ($d) => $d['count'] > 0)
-            ->values();
-
-        $visitorsByMonth = Visitor::selectRaw('
-            TO_CHAR(created_at, \'YYYY-MM\') as month,
-            COUNT(*) as count
-        ')
+    private function visitorsByMonth($user, Carbon $now): Collection
+    {
+        $q = Visitor::selectRaw('TO_CHAR(created_at, \'YYYY-MM\') as month, COUNT(*) as count')
             ->whereBetween('created_at', [
                 $now->copy()->subMonths(11)->startOfMonth(),
                 $now->endOfMonth(),
-            ])
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get();
+            ]);
 
-        $nextToExpireQuery = Voucher::with([
-            'visitor.type',
-            'visitor.creator.department',
-        ])
+        $this->scopeDepartment($q, 'creator');
+
+        return $q->groupBy('month')->orderBy('month')->get();
+    }
+
+    private function nextToExpire($user, Carbon $today): Collection
+    {
+        $q = Voucher::with(['visitor.type', 'visitor.creator.department'])
             ->whereNotNull('expires_at')
             ->where('expires_at', '>=', $today->startOfDay())
             ->where('expires_at', '<', $today->copy()->addDays(8));
 
-        if (!$user->isAdmin()) {
-            $nextToExpireQuery->whereHas('visitor.creator', fn ($q) =>
-                $q->where('department_id', $user->department_id)
-            );
-        }
+        $this->scopeDepartment($q, 'visitor.creator');
 
-        $nextToExpire = $nextToExpireQuery
-            ->orderBy('expires_at')
-            ->limit(10)
-            ->get();
+        return $q->orderBy('expires_at')->get();
+    }
 
-        $alreadyExpiredQuery = Visitor::with([
-            'type',
-            'creator.department',
-        ])
-            ->where('expires_at', '<', $today)
-            ->whereHas('voucher');
+    private function alreadyExpired($user, Carbon $today): Collection
+    {
+        $q = Visitor::with(['type', 'creator.department'])
+            ->where('expires_at', '<=', $today)
+            ->where('expires_at', '>=', $today->copy()->subDays(7)->startOfDay());
 
-        if (!$user->isAdmin()) {
-            $alreadyExpiredQuery->whereHas('creator', fn ($q) =>
-                $q->where('department_id', $user->department_id)
-            );
-        }
+        $this->scopeDepartment($q, 'creator');
 
-        $alreadyExpired = $alreadyExpiredQuery
-            ->orderBy('expires_at', 'desc')
-            ->limit(10)
-            ->get();
+        return $q->orderBy('expires_at', 'desc')->get();
+    }
 
-        $recentActivities = ActivityLog::with('user.department')
-            ->orderBy('created_at', 'desc')
+    private function recentActivities($user): Collection
+    {
+        $q = ActivityLog::with('user.department');
+        $this->scopeDepartment($q, 'user');
+
+        return $q->orderBy('created_at', 'desc')
             ->limit(5)
             ->get()
-            ->map(function ($log) {
-                switch ($log->action) {
-                    case 'visitor_created':
-                        $description = "Novo visitante: " . ($log->data['visitor_name'] ?? '');
-                        break;
-                    case 'visitor_password_resent':
-                        $description = "Senha reenviada para: " . ($log->data['visitor_name'] ?? '');
-                        break;
-                    case 'visitor_updated': 
-                        $description = "Atualizou: " . ($log->data['visitor_name'] ?? '');
-                        break;
-                    case 'visitor_deleted':
-                        $description = "Removeu: " . ($log->data['visitor_name'] ?? '');
-                        break;
-                    case 'visitor_password_generated':
-                        $description = "Nova senha: " . ($log->data['visitor_name'] ?? '');
-                        break;
-                    case 'visitor_expired':
-                        $description = "Expirou (login: " . ($log->data['login'] ?? '') . ")";
-                        break;
-                    case 'department_created':
-                        $description = "Novo depto: " . ($log->data['department_name'] ?? '');
-                        break;
-                    case 'department_deleted':
-                        $description = "Removeu dept: " . ($log->data['department_name'] ?? '');
-                        break;
-                    case 'visitor_type_created':
-                        $description = "Novo tipo: " . ($log->data['type_name'] ?? '');
-                        break;
-                    case 'visitor_type_deleted':
-                        $description = "Removeu tipo: " . ($log->data['type_name'] ?? '');
-                        break;
-                    default:
-                        $description = $log->action;
-                        break;
-                }
+            ->map(fn ($log) => [
+                'id' => $log->id,
+                'user' => $log->user?->name,
+                'user_role' => $log->user?->role,
+                'department' => $log->user?->department?->name,
+                'action' => $log->getDescription(),
+                'created_at' => $log->created_at->format('d/m H:i'),
+            ]);
+    }
 
-                return [
-                    'id' => $log->id,
-                    'user' => $log->user ? $log->user->name : null,
-                    'user_role' => $log->user ? $log->user->role : null,
-                    'department' => $log->user && $log->user->department ? $log->user->department->name : null,
-                    'action' => $description,
-                    'created_at' => $log->created_at->format('d/m H:i'),
-                ];
-            });
+    private function importStats($user): array
+    {
+        $q = ImportBatch::where('status', '!=', 'deleted');
+        $this->scopeDepartment($q, 'creator');
 
-        $importStatsQuery = ImportBatch::query();
-        
-        if (!$user->isAdmin()) {
-            $importStatsQuery->where('created_by', $user->id);
-        }
+        $batchIds = (clone $q)->pluck('id');
+        $totalErrors = ImportError::whereIn('import_batch_id', $batchIds)
+            ->where('skipped', false)
+            ->count();
 
-        $importStats = $importStatsQuery->selectRaw('
-            COUNT(*) as total_batches,
-            SUM(total_rows) as total_imported,
-            SUM(success_count) as total_success,
-            SUM(error_count) as total_errors
-        ')->first();
+        $totalSkipped = ImportError::whereIn('import_batch_id', $batchIds)
+            ->where('skipped', true)
+            ->count();
 
-        $recentImportsQuery = ImportBatch::with('creator:id,name');
+        $stats = $q->selectRaw('
+                COUNT(*) as total_batches,
+                COALESCE(SUM(total_rows), 0) as total_imported,
+                COALESCE(SUM(success_count), 0) as total_success
+            ')->first();
 
-        if (!$user->isAdmin()) {
-            $recentImportsQuery->where('created_by', $user->id);
-        }
+        return [
+            'totalBatches' => $stats->total_batches ?? 0,
+            'totalImported' => $stats->total_imported ?? 0,
+            'totalSuccess' => $stats->total_success ?? 0,
+            'totalErrors' => $totalErrors,
+            'totalSkipped' => $totalSkipped,
+        ];
+    }
 
-        $recentImports = $recentImportsQuery
-            ->orderBy('created_at', 'desc')
+    private function recentImports($user): Collection
+    {
+        $q = ImportBatch::where('status', '!=', 'deleted')->with('creator:id,name');
+        $this->scopeDepartment($q, 'creator');
+
+        return $q->orderBy('created_at', 'desc')
             ->limit(5)
             ->get()
             ->map(fn ($batch) => [
@@ -204,26 +201,5 @@ $user = auth()->user();
                 'created_at' => $batch->created_at->format('d/m H:i'),
                 'creator' => $batch->creator?->name,
             ]);
-
-        return Inertia::render('dashboard', [
-            'stats' => [
-                'totalVisitors' => $totalVisitors,
-                'totalVouchers' => $totalVouchers,
-                'totalThisMonth' => $totalThisMonth,
-                'expiredVisitors' => $expiredVisitors,
-            ],
-            'importStats' => [
-                'totalBatches' => $importStats->total_batches ?? 0,
-                'totalImported' => $importStats->total_imported ?? 0,
-                'totalSuccess' => $importStats->total_success ?? 0,
-                'totalErrors' => $importStats->total_errors ?? 0,
-            ],
-            'visitorsByDepartment' => $visitorsByDepartment,
-            'visitorsByMonth' => $visitorsByMonth,
-            'nextToExpire' => $nextToExpire,
-            'alreadyExpired' => $alreadyExpired,
-            'recentActivities' => $recentActivities,
-            'recentImports' => $recentImports,
-        ]);
     }
 }
