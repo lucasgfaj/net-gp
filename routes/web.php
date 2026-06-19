@@ -8,6 +8,7 @@ use App\Http\Controllers\VisitorTypeController;
 use App\Http\Controllers\VouchersController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImportBatchController;
+use App\Http\Controllers\ImportErrorController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -81,6 +82,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::delete('import-batches/{batch}', [ImportBatchController::class, 'destroy'])
         ->name('import-batches.destroy');
+
+    Route::put('import-errors/{importError}', [ImportErrorController::class, 'update'])
+        ->name('import-errors.update');
+
+    Route::post('import-errors/{importError}/skip', [ImportErrorController::class, 'skip'])
+        ->name('import-errors.skip');
+
+    Route::delete('import-errors/{importError}', [ImportErrorController::class, 'destroy'])
+        ->name('import-errors.destroy');
 });
 
 require __DIR__.'/settings.php';

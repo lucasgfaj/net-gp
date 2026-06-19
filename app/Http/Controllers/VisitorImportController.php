@@ -24,6 +24,7 @@ class VisitorImportController extends Controller
             'file' => 'required|file|mimes:csv,xlsx,xls|max:5120',
             'expires_at' => 'nullable|date',
             'type_id' => 'nullable|exists:visitor_types,id',
+            'reason' => 'nullable|string|max:255',
         ]);
 
         $file = $request->file('file');
@@ -74,10 +75,13 @@ class VisitorImportController extends Controller
             $filename,
             $expiresAt,
             $typeId,
-            $totalRows
+            $totalRows,
+            $request->input('reason')
         );
 
+        $created = $totalRows - $batch->error_count;
+
         return redirect()->route('import-batches.index')
-            ->with('success', "Importação concluída: {$batch->success_count} visitante(s) importado(s) com sucesso. Login e senha enviados por email, {$batch->error_count} erro(s).");
+            ->with('success', "Importação iniciada: {$created} visitante(s) criado(s), {$batch->error_count} erro(s) de validação. Os dados estão sendo processados em segundo plano.");
     }
 }

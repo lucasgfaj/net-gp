@@ -33,7 +33,9 @@ interface Props {
         last_page: number;
         per_page: number;
         total: number;
+        links: { url: string | null; label: string; active: boolean }[];
     };
+    [key: string]: unknown;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -138,7 +140,7 @@ export default function ImportBatchesIndex() {
                                                 {getStatusBadge(batch.status)}
                                             </TableCell>
                                             <TableCell className="text-sm text-muted-foreground truncate max-w-[100px] sm:max-w-[120px]">
-                                                {shortenName(batch.creator?.name) || '-'}
+                                                {shortenName(batch.creator?.name ?? '') || '-'}
                                             </TableCell>
                                             <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                                                 {new Date(batch.created_at).toLocaleDateString('pt-BR')}

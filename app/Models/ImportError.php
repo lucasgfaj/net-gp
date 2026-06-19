@@ -14,10 +14,12 @@ class ImportError extends Model
         'line_number',
         'error_message',
         'row_data',
+        'skipped',
     ];
 
     protected $casts = [
         'row_data' => 'array',
+        'skipped' => 'boolean',
     ];
 
     public function batch()

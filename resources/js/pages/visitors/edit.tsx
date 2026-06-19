@@ -200,33 +200,37 @@ export default function EditVisitor({ visitor, types }: { visitor: Visitor; type
                             <Link href={visitors.index.get().url}>Cancelar</Link>
                         </Button>
                         <Button disabled={processing} type="submit">Salvar</Button>
-                        <ConfirmDialog
-                            title="Gerar nova senha"
-                            description="Deseja realmente gerar uma nova senha para este visitante?"
-                            onConfirm={() => {
-                                const today = new Date();
-                                today.setHours(0, 0, 0, 0);
-                                const selectedDate = new Date(data.expires_at + "T00:00:00");
-
-                                if (!data.expires_at || selectedDate < today) {
-                                    toast.error("Ajuste a data de expiração para hoje ou posterior.");
-                                    return;
-                                }
-
-                                router.post(
-                                    visitors.generatePassword({ visitor: visitor.id }).url,
-                                    { preserveState: false }
-                                );
-                            }}
-                            trigger={
-                                <Button type="button" disabled={processing}>
-                                    Nova Senha
-                                </Button>
-                            }
-                        />
                     </div>
 
                 </form>
+
+                <div className="mt-4 flex gap-2">
+                    <ConfirmDialog
+                        title="Gerar nova senha"
+                        description="Deseja realmente gerar uma nova senha para este visitante?"
+                        onConfirm={() => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const selectedDate = new Date(data.expires_at + "T00:00:00");
+
+                            if (!data.expires_at || selectedDate < today) {
+                                toast.error("Ajuste a data de expiração para hoje ou posterior.");
+                                return;
+                            }
+
+                            router.post(
+                                visitors.generatePassword({ visitor: visitor.id }).url,
+                                { preserveState: false }
+                            );
+                        }}
+                        trigger={
+                            <Button type="button" disabled={processing}>
+                                Gerar Nova Senha
+                            </Button>
+                        }
+                    />
+                </div>
+
             </div>
         </AppLayout>
     );

@@ -18,9 +18,9 @@ class DisableExpiredVisitors extends Command
 
     public function handle(SambaInterface $sambaService, ActivityLogInterface $activityLogService)
     {
-        $now = Carbon::now();
+        $today = Carbon::today();
 
-        $visitors = Visitor::where('expires_at', '<=', $now)
+        $visitors = Visitor::where('expires_at', '<', $today)
             ->whereHas('voucher')
             ->get();
 
