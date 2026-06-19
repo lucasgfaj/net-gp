@@ -84,6 +84,7 @@ Listagem completa de todos os componentes do sistema Net-GP:
 | `VisitorTypeController` | CRUD de tipos de visitante |
 | `VisitorImportController` | Upload e processamento de importação em lote |
 | `ImportBatchController` | Visualização e gestão de lotes importados |
+| `ImportErrorController` | Gerenciamento de erros de importação (editar, pular, excluir) |
 | `DashboardController` | Métricas e cards do dashboard |
 
 #### 2.2.3 Services
@@ -185,7 +186,7 @@ Controller dedicado à listagem e visualização de vouchers. Permite filtrar po
 
 Comando agendado executado diariamente às 00:00 pelo Laravel Scheduler. Executa a rotina de limpeza de visitantes expirados:
 
-1. Query por visitantes com `expires_at <= now()` que possuem voucher ativo
+1. Query por visitantes com `expires_at < today()` (meia-noite) que possuem voucher ativo
 2. Para cada resultado, abre uma transação isolada no banco
 3. Deleta o usuário no Samba via SSH (`samba-tool user delete`)
 4. Remove o voucher do banco de dados
@@ -199,10 +200,11 @@ Em caso de falha (timeout, erro de conexão), executa rollback apenas daquele vi
 Job processado em background pelo container Worker. Responsável por processar individualmente cada linha de uma planilha importada:
 
 - Valida CPF matematicamente (dígitos verificadores)
-- Verifica unicidade de CPF e email
-- Cria Visitor + Voucher + usuário Samba
+- CPF duplicado → atualiza Visitor existente (name, email, phone, school, expires_at) + cria/atualiza Voucher + atualiza Samba
+- Email duplicado → gera erro de validação
+- Cria/atualiza Visitor + Voucher + usuário Samba
 - Dispara email com delay de 2 segundos (rate limiting)
-- Registra sucesso ou erro (com número da linha e mensagem)
+- Registra sucesso ou erro (com número da linha, dados da linha e mensagem)
 
 #### ActivityLogService
 
@@ -219,14 +221,15 @@ Registrado em todas as operações de visitantes, autenticação, departamentos,
 
 Controller que agrega métricas para exibição no painel principal. Retorna dados para os cards e gráficos:
 
-- Total de visitantes (geral e mensal)
-- Total de visitantes expirados
+- Total de visitantes (geral e mensal) — **totalVisitors conta todos (sem whereHas('voucher'))**
+- Total de visitantes expirados — **contagem apenas dos últimos 7 dias**
 - Vouchers ativos
-- Distribuição de visitantes por departamento
-- Evolução mensal de visitantes
-- Próximos vouchers a expirar
-- Últimas atividades (timeline dos 5 últimos logs)
-- Histórico de lotes de importação
+- Distribuição de visitantes por departamento — **consulta única com GROUP BY (N+1 corrigido)**
+- Evolução mensal de visitantes — **totalCreatedThisMonth corrigido (bug de mutação Carbon)**
+- Próximos vouchers a expirar — **paginação client-side (5 por página)**
+- Últimas atividades — **usa getDescription() do model, paginação client-side (5 por página)**
+- Histórico de lotes de importação — **paginação client-side (5 por página)**
+- **Dashboard refatorado em métodos privados**
 
 Aplica filtro departamental: operadores veem apenas métricas dos seus visitantes.
 
@@ -340,6 +343,7 @@ erDiagram
         int line_number
         text error_message
         json row_data "nullable"
+        boolean skipped "default: false"
         timestamp timestamps
     }
 
@@ -517,6 +521,7 @@ Erros individuais ocorridos durante importações em lote.
 | line_number | int | | Número da linha na planilha |
 | error_message | text | | Mensagem descritiva do erro |
 | row_data | json | NULLABLE | Dados brutos da linha que falhou |
+| skipped | boolean | DEFAULT false | Se o erro foi pulado pelo usuário |
 | created_at | timestamp | | Data de criação |
 | updated_at | timestamp | | Data de atualização |
 
@@ -689,7 +694,7 @@ Schedule::command('visitors:disable-expired')
 
 Executa **diariamente às 00:00** (com `->withoutOverlapping()` para evitar execuções concorrentes):
 
-1. Busca visitantes com `expires_at <= now()` que possuem voucher (`whereHas('voucher')`)
+1. Busca visitantes com `expires_at < today()` (estrito) que possuem voucher (`whereHas('voucher')`)
 2. Injeta `SambaInterface` e `ActivityLogInterface` via container Laravel
 3. Para cada visitante, abre uma `Transaction` no Banco Isolada:
     - Extrai CPF numérico → login (`preg_replace('/\D/', '', $visitor->cpf)`)
@@ -925,7 +930,7 @@ Implementa `VisitorInterface` e orquestra todas as operações de visitante.
 | Método | Descrição | Transação | Samba | Email | ActivityLog |
 |--------|-----------|-----------|-------|-------|-------------|
 | `create(array)` | Cria visitor + voucher + samba + email | `DB::transaction` | `createSambaUser` | `VisitorLogin` | `visitor_created` |
-| `update(Visitor, array, userId)` | Atualiza dados, recria samba se CPF mudou | Não | `deleteSambaUser` + `createSambaUser` ou `updateSambaUserPassword` | - | `visitor_updated` |
+| `update(Visitor, array, userId)` | Atualiza dados, recria samba se CPF mudou. Se `reset_password=true`, gera nova senha, atualiza Samba e envia email. | Não | `deleteSambaUser` + `createSambaUser` ou `updateSambaUserPassword` | `UpdateVisitorLogin` (se reset_password) | `visitor_updated` |
 | `delete(Visitor, userId)` | Deleta samba + voucher + visitor | Não | `deleteSambaUser` (continua se not found) | - | `visitor_deleted` |
 | `generatePassword(Visitor, userId)` | Nova senha, atualiza samba, envia email | Não | `createSambaUser` ou `updateSambaUserPassword` | `UpdateVisitorLogin` | `visitor_password_generated` |
 | `resendPassword(Visitor, userId)` | Reenvia email com credenciais existentes | Não | - | `ResendVisitorLogin` | `visitor_password_resent` |
@@ -1000,6 +1005,7 @@ Implementa `ActivityLogInterface` e registra eventos de auditoria na tabela `act
 
 ```
 1. GET /visitors/import → formulário (upload XLSX/XLS/CSV + type_id + expires_at opcionais)
+
 2. POST /visitors/import (VisitorImportController.store)
    ├── Valida: file ≤ 5MB, mimes: csv,xlsx,xls
    ├── Parse: PhpSpreadsheet (XLSX/XLS) ou fgetcsv (CSV)
@@ -1007,27 +1013,36 @@ Implementa `ActivityLogInterface` e registra eventos de auditoria na tabela `act
    ├── VisitorImportService.import(rows, userId, filename, expiresAt, typeId)
    │   ├── Cria ImportBatch (status: processing)
    │   ├── Para cada linha:
-   │   │   ├── validateRow() → valida nome, CPF (digitos), email, phone, duplicatas
-   │   │   ├── createVisitor() → cria Visitor (type_id default, import_batch_id)
-   │   │   ├── ProcessVisitorImport::dispatch(visitor, batch) → delay 2s por linha
-   │   │   └── Se VisitorException → ImportError com linha + mensagem
-   │   └── Atualiza status: completed / failed
+   │   │   ├── validateRow() → valida nome, CPF (digitos), email, phone
+   │   │   ├── CPF duplicado → atualiza Visitor existente + atualiza/cria Voucher (não gera erro)
+   │   │   ├── Email duplicado → ImportError (linha + mensagem)
+   │   │   ├── createOrUpdateVisitor() → cria ou atualiza Visitor
+   │   │   ├── ProcessVisitorImport::dispatch(visitor, batch, isUpdate) → delay 2s por linha
+   │   │   └── Se VisitorException → ImportError com linha + dados + mensagem
+   │   └── Atualiza status: completed / failed / partial
    └── Redirect → /import-batches com flash success/error
 
 3. ProcessVisitorImport (Queue Job, tries=3, backoff=60s)
    ├── Extrai login do CPF
-   ├── Gera senha aleatória
-   ├── Cria Voucher no banco
-   ├── SambaInterface::createSambaUser(login, password)
+   ├── Gera senha aleatória (se novo) ou mantém (se update)
+   ├── Cria ou atualiza Voucher no banco
+   ├── SambaInterface::createSambaUser(login, password) ou updateSambaUserPassword
    ├── Se falha → incrementa error_count, retorna
    ├── Se sucesso → incrementa success_count
    ├── Se visitor tem email →
-   │   ├── Notifica VisitorLogin
+   │   ├── Notifica VisitorLogin (ou UpdateVisitorLogin se update)
    │   ├── Marca email_sent = true, email_sent_at = now
    └── Em caso de Throwable → incrementa error_count, relança
        └── failed() → ImportError com row_data
 
-4. Lote deletável via DELETE /import-batches/{batch}
+4. Gerenciamento de Erros (ImportErrorController)
+   ├── PUT /import-errors/{error} → edita dados do erro (name, cpf, email, phone, type_id, expires_at) e reprocessa
+   │   └── Recria Visitor a partir dos dados corrigidos + dispatch de ProcessVisitorImport
+   ├── PATCH /import-errors/{error}/skip → marca erro como skipped = true
+   │   └── Quando todos os erros não-pulados são processados, batch auto-completa
+   └── DELETE /import-errors/{error} → remove registro de erro
+
+5. Lote deletável via DELETE /import-batches/{batch}
    ├── Deleta samba user + voucher + visitor de cada linha
    └── Marca status = deleted
 ```
