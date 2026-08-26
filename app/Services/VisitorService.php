@@ -121,7 +121,7 @@ class VisitorService implements VisitorInterface
             $this->sambaService->updateSambaUserExpiry($newCpf, $visitor->expires_at);
         }
 
-        $this->activityLogService->logVisitorUpdated($visitor->id, $visitor->name, [], [], $userId);
+        $this->activityLogService->logVisitorUpdated($visitor->id, $visitor->name, $userId, [], []);
 
         return $visitor->refresh();
     }

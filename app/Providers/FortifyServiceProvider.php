@@ -31,7 +31,7 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
-        Fortify::authenticateUsing(new AuthenticateUsingLdap);
+        Fortify::authenticateUsing(fn ($request) => app(\App\Actions\Fortify\AuthenticateUsingLdap::class)($request));
     }
 
     /**

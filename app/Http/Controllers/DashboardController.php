@@ -25,8 +25,8 @@ class DashboardController extends Controller
             'stats' => [
                 'totalVisitors' => $this->totalVisitors($user),
                 'totalVouchers' => $this->totalVouchers($user),
-                'totalThisMonth' => $this->totalCreatedThisMonth(),
-                'expiredVisitors' => $this->expiredVisitorCount($today),
+                'totalThisMonth' => $this->totalCreatedThisMonth($user),
+                'expiredVisitors' => $this->expiredVisitorCount($today, $user),
             ],
             'importStats' => $this->importStats($user),
             'visitorsByDepartment' => $this->visitorsByDepartment($user),
@@ -66,18 +66,24 @@ class DashboardController extends Controller
         return $q->count();
     }
 
-    private function totalCreatedThisMonth(): int
+    private function totalCreatedThisMonth($user): int
     {
-        return Visitor::whereYear('created_at', now()->year)
-            ->whereMonth('created_at', now()->month)
-            ->count();
+        $q = Visitor::whereYear('created_at', now()->year)
+            ->whereMonth('created_at', now()->month);
+
+        $this->scopeDepartment($q, 'creator');
+
+        return $q->count();
     }
 
-    private function expiredVisitorCount(Carbon $today): int
+    private function expiredVisitorCount(Carbon $today, $user): int
     {
-        return Visitor::where('expires_at', '<=', $today)
-            ->where('expires_at', '>=', $today->copy()->subDays(7)->startOfDay())
-            ->count();
+        $q = Visitor::where('expires_at', '<=', $today)
+            ->where('expires_at', '>=', $today->copy()->subDays(7)->startOfDay());
+
+        $this->scopeDepartment($q, 'creator');
+
+        return $q->count();
     }
 
     private function visitorsByDepartment($user): Collection
