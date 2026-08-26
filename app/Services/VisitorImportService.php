@@ -92,6 +92,8 @@ class VisitorImportService
         if ($totalProcessed >= $this->batch->total_rows) {
             if ($this->batch->error_count > 0 && $this->batch->success_count == 0) {
                 $this->batch->update(['status' => 'failed']);
+            } elseif ($this->batch->error_count > 0) {
+                $this->batch->update(['status' => 'partial']);
             } else {
                 $this->batch->update(['status' => 'completed']);
             }
