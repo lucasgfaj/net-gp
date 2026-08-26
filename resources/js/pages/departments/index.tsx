@@ -147,7 +147,14 @@ export default function DepartmentsIndex() {
                                     <TableCell>
                                         {paginated.from + index}
                                     </TableCell>
-                                    <TableCell>{d.name}</TableCell>
+                                    <TableCell>
+                                        <Link
+                                            href={departments.show({ department: d.id }).url}
+                                            className="font-medium hover:underline"
+                                        >
+                                            {d.name}
+                                        </Link>
+                                    </TableCell>
                                     <TableCell className="flex justify-end gap-2">
                                         <Link
                                             href={

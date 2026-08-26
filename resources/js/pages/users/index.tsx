@@ -201,7 +201,14 @@ export default function UsersIndex() {
                                     <TableCell>
                                         {paginated.from + index}
                                     </TableCell>
-                                    <TableCell>{d.name}</TableCell>
+                                    <TableCell>
+                                        <Link
+                                            href={users.show({ user: d.id }).url}
+                                            className="font-medium hover:underline"
+                                        >
+                                            {d.name}
+                                        </Link>
+                                    </TableCell>
                                     <TableCell>{d.email}</TableCell>
                                     <TableCell>
                                         {d.department?.name || '—'}
