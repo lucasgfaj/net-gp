@@ -15,7 +15,8 @@ departamento.
 
 ## 2. Onde acessar
 
-- **Endereço (domínio configurado):** `https://net-gp.gp.utfpr.edu.br`
+- **Endereços (domínios configurados):**
+  `https://net.gp.utfpr.edu.br` e `https://net-gp.gp.utfpr.edu.br` (ambos aceitos)
 - Acesso exclusivo pela rede da UTFPR.
 - Use um navegador atualizado (Chrome/Edge/Firefox).
 
@@ -35,7 +36,7 @@ Como operador, você **não vê e não acessa**: `Usuários`, `Departamentos`,
 
 ## 4. Login
 
-1. Acesse `https://net-gp.gp.utfpr.edu.br`.
+1. Acesse `https://net.gp.utfpr.edu.br` ou `https://net-gp.gp.utfpr.edu.br`.
 2. Preencha **usuário institucional** e **senha** (credenciais do domínio).
 3. Clique em **Entrar**.
 
