@@ -62,9 +62,6 @@ class ProcessVisitorImport implements ShouldQueue
                 return;
             }
 
-            $this->batch->increment('success_count');
-            $this->checkCompletion();
-
             if ($this->visitor->email && !$this->visitor->email_sent) {
                 $this->visitor->notify(new VisitorLogin(
                     email: $login,
@@ -77,6 +74,9 @@ class ProcessVisitorImport implements ShouldQueue
                     'email_sent_at' => now(),
                 ]);
             }
+
+            $this->batch->increment('success_count');
+            $this->checkCompletion();
 
             Log::info("Visitante processado com sucesso", [
                 'visitor_id' => $this->visitor->id,
