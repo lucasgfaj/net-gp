@@ -62,7 +62,7 @@ Sistema web para gestão de visitantes com criação automática de vouchers de 
 | ---- | ---------------------- | ------------------------------------------------------------------------------------------ | ---------- |
 | RF05 | Listar visitantes      | Ver todos os visitantes (filtrado por dept se for Operador)                                | Alta       |
 | RF06 | Criar visitante        | Cadastrar novo visitante com voucher                                                       | Alta       |
-| RF07 | Editar visitante       | Alterar dados do visitante. Flag `reset_password` aciona regeneração de senha, atualização no Samba e envio de email com nova senha. Validação de datas impede datas passadas. | Alta       |
+| RF07 | Editar visitante       | Alterar dados do visitante. Flag `reset_password` aciona regeneração de senha e atualização no Samba. Se `expires_at` mudou, a validade do usuário no Samba é atualizada. **Nenhum email é enviado nesta operação.** Validação de datas impede datas passadas. | Alta       |
 | RF08 | Excluir visitante      | Remover visitante, apagar seu voucher e **excluí-lo do Samba** caso o voucher esteja ativo | Alta       |
 | RF09 | Gerar nova senha       | Criar nova senha para o voucher e atualizá-la                                              | Média      |
 | RF10 | Filtrar por department | Filtrar visitantes por departamento                                                        | Alta       |
@@ -251,6 +251,8 @@ A visibilidade dos dados e acessos às telas é controlada diretamente pelo depa
 | RN16 | Erros de importação são armazenados contendo número da linha, dados da linha e a mensagem da Exception. |
 | RN17 | Erros podem ser corrigidos (editando dados: nome, CPF, email, phone, type, expires_at) e reprocessados, ou pulados sem eliminar o registro. Erro pulado recebe `skipped = true`. |
 | RN18 | `total_rows` faz apuração total da quantidade de registros disparados para fila. |
+| RN19 | Falha no envio de email durante o processamento de um lote (SMTP) vira erro de importação (`ImportError` com prefixo `SMTP:`) e não conta como sucesso. |
+| RN20 | Na importação, voucher já existente apenas tem a validade atualizada no Samba (`setexpiry`), sem alterar a senha; somente voucher novo gera usuário e senha no Samba. |
 
 ---
 
