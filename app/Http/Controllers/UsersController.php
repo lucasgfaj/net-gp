@@ -8,9 +8,9 @@ use App\Models\Department;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Hash;
+
 class UsersController extends Controller
 {
-
     public function index(UserIndexRequest $request)
     {
         $filters = $request->validated();
@@ -45,6 +45,41 @@ class UsersController extends Controller
         ]);
     }
 
+    public function create()
+    {
+        return Inertia::render('users/create', [
+            'departments' => Department::select(['id', 'name'])->get(),
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'username' => 'required|string|unique:users,username',
+            'department_id' => 'required|exists:departments,id',
+            'role' => 'required|in:admin,operator',
+        ]);
+
+        $user = User::create([
+            ...$validated,
+            'password' => '$ldap$',
+        ]);
+
+        return redirect()->route('users.index')
+            ->with('success', 'Usuário criado com sucesso.');
+    }
+
+    public function show(User $user)
+    {
+        $user->load('department');
+
+        return Inertia::render('users/show', [
+            'user' => $user,
+        ]);
+    }
+
     public function edit(User $user)
     {
         return Inertia::render('users/edit', [
@@ -67,5 +102,17 @@ class UsersController extends Controller
         $user->save();
 
         return redirect()->route('users.index');
+    }
+
+    public function destroy(User $user)
+    {
+        if ($user->id === auth()->id()) {
+            return back()->withErrors(['error' => 'Você não pode excluir seu próprio usuário.']);
+        }
+
+        $user->delete();
+
+        return redirect()->route('users.index')
+            ->with('success', 'Usuário excluído com sucesso.');
     }
 }

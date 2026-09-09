@@ -70,7 +70,7 @@ export default function ImportBatchesIndex() {
         };
         
         const labels: Record<string, string> = {
-            completed: 'Concluído',
+            completed: 'Sucesso',
             failed: 'Falhou',
             processing: 'Processando',
             partial: 'Parcial',

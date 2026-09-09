@@ -49,6 +49,15 @@ public function index(Request $request)
         return Inertia::render('departments/create');
     }
 
+    public function show(Department $department)
+    {
+        $department->loadCount('users');
+
+        return Inertia::render('departments/show', [
+            'department' => $department,
+        ]);
+    }
+
     public function store(Request $request, ActivityLogInterface $activityLogService)
     {
         $request->validate(
@@ -66,7 +75,8 @@ public function index(Request $request)
 
         $activityLogService->logDepartmentCreated(
             $department->id,
-            $department->name
+            $department->name,
+            auth()->id()
         );
 
         return redirect()->route('departments.index')
@@ -114,7 +124,8 @@ public function index(Request $request)
 
         $activityLogService->logDepartmentDeleted(
             $department->id,
-            $departmentName
+            $departmentName,
+            auth()->id()
         );
 
         return redirect()->route('departments.index')

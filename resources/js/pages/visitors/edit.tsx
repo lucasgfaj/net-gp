@@ -206,8 +206,8 @@ export default function EditVisitor({ visitor, types }: { visitor: Visitor; type
 
                 <div className="mt-4 flex gap-2">
                     <ConfirmDialog
-                        title="Gerar nova senha"
-                        description="Deseja realmente gerar uma nova senha para este visitante?"
+                        title="Criar novo voucher"
+                        description="Deseja realmente criar um novo voucher para este visitante?"
                         onConfirm={() => {
                             const today = new Date();
                             today.setHours(0, 0, 0, 0);
@@ -225,7 +225,7 @@ export default function EditVisitor({ visitor, types }: { visitor: Visitor; type
                         }}
                         trigger={
                             <Button type="button" disabled={processing}>
-                                Gerar Nova Senha
+                                Criar Novo Voucher
                             </Button>
                         }
                     />

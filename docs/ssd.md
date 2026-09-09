@@ -68,24 +68,25 @@ Listagem completa de todos os componentes do sistema Net-GP:
 
 | Componente | Tecnologia | Responsabilidade |
 |-----------|-----------|-----------------|
-| `React App` | React 18.x | Interface de usuário (SPA) |
+| `React App` | React 19.x | Interface de usuário (SPA) |
 | `Inertia Pages` | Inertia 2.x | Páginas roteadas pelo Laravel |
-| `Tailwind Components` | Tailwind 3.x | Componentes visuais reutilizáveis |
-| `Vite Config` | Vite 6.x | Build tool e hot-reload |
+| `Tailwind Components` | Tailwind 4.x | Componentes visuais reutilizáveis |
+| `Vite Config` | Vite 7.x | Build tool e hot-reload |
 
 #### 2.2.2 Backend (Controllers)
 
 | Componente | Responsabilidade |
 |-----------|-----------------|
 | `VisitorsController` | CRUD de visitantes (listar, criar, editar, excluir, gerar senha, reenviar) |
-| `VouchersController` | Listagem e filtragem de vouchers |
-| `UsersController` | Gestão de usuários do sistema (listar, editar roles) |
-| `DepartmentsController` | CRUD de departamentos |
-| `VisitorTypeController` | CRUD de tipos de visitante |
+| `VouchersController` | CRUD de vouchers (listar, criar, visualizar, editar, excluir) |
+| `UsersController` | CRUD de usuários do sistema (listar, criar, visualizar, editar, excluir) |
+| `DepartmentsController` | CRUD de departamentos (listar, criar, visualizar, editar, excluir) |
+| `VisitorTypeController` | CRUD de tipos de visitante (listar, criar, visualizar, editar, excluir) |
 | `VisitorImportController` | Upload e processamento de importação em lote |
 | `ImportBatchController` | Visualização e gestão de lotes importados |
 | `ImportErrorController` | Gerenciamento de erros de importação (editar, pular, excluir) |
 | `DashboardController` | Métricas e cards do dashboard |
+| `ActivitiesController` | Listagem e visualização de logs de auditoria |
 
 #### 2.2.3 Services
 
@@ -95,7 +96,7 @@ Listagem completa de todos os componentes do sistema Net-GP:
 | `SambaService` | SSH via phpseclib3 para criar/deletar usuários no Samba/AD |
 | `ActivityLogService` | Registro transversal de ações (IP, user agent, autor) |
 | `VoucherService` | Geração de credenciais (login=CPF, senha automática) |
-| `EmailService` | Disparo de emails com credenciais aos visitantes |
+| `VisitorService` | Orquestração de operações de visitante (criar, atualizar, excluir, gerar senha) |
 
 #### 2.2.4 Jobs e Commands
 
@@ -103,7 +104,6 @@ Listagem completa de todos os componentes do sistema Net-GP:
 |-----------|-----------------|
 | `DisableExpiredVisitors` | Comando cron que remove visitantes expirados do Samba e BD |
 | `ProcessVisitorImport` | Job de fila que processa cada linha de importação em lote |
-| `SendVoucherEmail` | Job de fila que dispara email de credenciais com rate limiting |
 
 #### 2.2.5 Middlewares
 

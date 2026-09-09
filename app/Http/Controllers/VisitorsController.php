@@ -168,6 +168,12 @@ class VisitorsController extends Controller
 
     public function edit(Visitor $visitor)
     {
+        $user = auth()->user();
+
+        if ($user->isOperator() && $visitor->created_by !== $user->id) {
+            abort(403, 'Você não tem permissão para editar este visitante.');
+        }
+
         $visitor->load(['type', 'voucher']);
 
         return Inertia::render('visitors/edit', [
@@ -179,6 +185,12 @@ class VisitorsController extends Controller
 
     public function update(Request $request, Visitor $visitor)
     {
+        $user = auth()->user();
+
+        if ($user->isOperator() && $visitor->created_by !== $user->id) {
+            abort(403, 'Você não tem permissão para editar este visitante.');
+        }
+
         $request->validate([
             'name' => 'required',
             'cpf' => 'required',
@@ -240,6 +252,12 @@ class VisitorsController extends Controller
 
     public function destroy(Visitor $visitor)
     {
+        $user = auth()->user();
+
+        if ($user->isOperator() && $visitor->created_by !== $user->id) {
+            abort(403, 'Você não tem permissão para excluir este visitante.');
+        }
+
         $login = preg_replace('/\D/', '', $visitor->cpf);
         $name = $visitor->name;
 

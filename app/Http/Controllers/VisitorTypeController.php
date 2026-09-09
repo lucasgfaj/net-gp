@@ -46,6 +46,15 @@ class VisitorTypeController extends Controller
         return Inertia::render('visitorTypes/create');
     }
 
+    public function show(VisitorType $visitorType)
+    {
+        $visitorType->loadCount('visitors');
+
+        return Inertia::render('visitorTypes/show', [
+            'type' => $visitorType,
+        ]);
+    }
+
     public function store(Request $request, ActivityLogInterface $activityLogService)
     {
         $request->validate([

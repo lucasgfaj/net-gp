@@ -31,7 +31,6 @@ class ProcessVisitorImport implements ShouldQueue
         try {
             $login = preg_replace('/\D/', '', $this->visitor->cpf);
             $voucher = Voucher::where('visitor_id', $this->visitor->id)->first();
-            $isNewVoucher = false;
 
             if ($voucher) {
                 $voucher->update([
@@ -40,7 +39,6 @@ class ProcessVisitorImport implements ShouldQueue
 
                 $result = $sambaService->updateSambaUserExpiry($login, $this->visitor->expires_at);
             } else {
-                $isNewVoucher = true;
                 $passwordPlain = substr(md5(uniqid()), 0, 8);
 
                 $voucher = Voucher::create([
@@ -60,11 +58,8 @@ class ProcessVisitorImport implements ShouldQueue
                     'error' => $result['error'] ?? 'Erro desconhecido'
                 ]);
                 $this->batch->increment('error_count');
+                $this->checkCompletion();
                 return;
-            }
-
-            if ($isNewVoucher) {
-                $this->batch->increment('success_count');
             }
 
             if ($this->visitor->email && !$this->visitor->email_sent) {
@@ -79,6 +74,9 @@ class ProcessVisitorImport implements ShouldQueue
                     'email_sent_at' => now(),
                 ]);
             }
+
+            $this->batch->increment('success_count');
+            $this->checkCompletion();
 
             Log::info("Visitante processado com sucesso", [
                 'visitor_id' => $this->visitor->id,
@@ -99,7 +97,8 @@ class ProcessVisitorImport implements ShouldQueue
     public function failed(\Throwable $exception): void
     {
         $this->batch->increment('error_count');
-        
+        $this->checkCompletion();
+
         \App\Models\ImportError::create([
             'import_batch_id' => $this->batch->id,
             'line_number' => $this->visitor->id,
@@ -115,5 +114,22 @@ class ProcessVisitorImport implements ShouldQueue
             'visitor_id' => $this->visitor->id,
             'error' => $exception->getMessage()
         ]);
+    }
+
+    protected function checkCompletion(): void
+    {
+        $this->batch->refresh();
+
+        $totalProcessed = $this->batch->success_count + $this->batch->error_count;
+
+        if ($totalProcessed >= $this->batch->total_rows) {
+            if ($this->batch->error_count > 0 && $this->batch->success_count == 0) {
+                $this->batch->update(['status' => 'failed']);
+            } elseif ($this->batch->error_count > 0) {
+                $this->batch->update(['status' => 'partial']);
+            } else {
+                $this->batch->update(['status' => 'completed']);
+            }
+        }
     }
 }

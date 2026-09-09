@@ -2,11 +2,16 @@
 
 namespace App\Actions\Fortify;
 
+use App\Contracts\ActivityLogInterface;
 use App\Models\User;
 use App\Services\LdapService;
 
 class AuthenticateUsingLdap
 {
+    public function __construct(
+        protected ActivityLogInterface $activityLogService
+    ) {}
+
     public function __invoke($request)
     {
         $ldap = new LdapService();
@@ -31,7 +36,7 @@ class AuthenticateUsingLdap
 
         $role = $ldap->mapRoleByGroups($data['groups']);
 
-        return User::updateOrCreate(
+        $user = User::updateOrCreate(
             ['username' => $data['username']],
             [
                 'ldap_dn' => $data['dn'],
@@ -42,5 +47,9 @@ class AuthenticateUsingLdap
                 'role' => $role,
             ]
         );
+
+        $this->activityLogService->logLogin($user);
+
+        return $user;
     }
 }

@@ -192,7 +192,7 @@ return (
                     <Card className="py-3">
                         <CardContent className="py-0">
                             <Badge variant={batch.status === 'completed' ? 'default' : batch.status === 'failed' ? 'destructive' : 'secondary'} className="whitespace-nowrap text-xs">
-                                {batch.status === 'completed' ? 'Completo' : batch.status === 'processing' ? 'Processando' : batch.status === 'failed' ? 'Falhou' : batch.status === 'deleted' ? 'Deletado' : batch.status}
+                                {batch.status === 'completed' ? 'Sucesso' : batch.status === 'processing' ? 'Processando' : batch.status === 'failed' ? 'Falhou' : batch.status === 'deleted' ? 'Deletado' : batch.status}
                             </Badge>
                             <div className="text-xs text-muted-foreground mt-1">Status</div>
                         </CardContent>
