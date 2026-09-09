@@ -45,7 +45,6 @@ Detalhes:
   a ele.
 - Se o e-mail não foi confirmado, será solicitada a verificação antes do
   primeiro uso.
-- Recomenda-se ativar a **autenticação em dois fatores (2FA)** (ver seção 9).
 
 ---
 
@@ -177,7 +176,6 @@ validade.
 - **Perfil** — editar nome, e-mail e informações da conta.
 - **Senha** — trocar sua senha de acesso.
 - **Aparência** — modo claro, escuro ou automático.
-- **Autenticação em dois fatores** — habilite o 2FA para proteger seu acesso.
 
 ---
 
