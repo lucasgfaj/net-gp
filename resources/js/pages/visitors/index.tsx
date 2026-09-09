@@ -236,7 +236,14 @@ export default function VisitorsIndex() {
                             {items.map((v, index: number) => (
                                 <TableRow key={v.id}>
                                     <TableCell>{paginated.from + index}</TableCell>
-                                    <TableCell>{shortenName(v.name)}</TableCell>
+                                    <TableCell>
+                                        <Link
+                                            href={visitors.show(v.id).url}
+                                            className="font-medium hover:underline"
+                                        >
+                                            {shortenName(v.name)}
+                                        </Link>
+                                    </TableCell>
                                     <TableCell>{v.cpf}</TableCell>
                                     <TableCell>{v.email || "—"}</TableCell>
                                     <TableCell>{v.type?.name || "—"}</TableCell>

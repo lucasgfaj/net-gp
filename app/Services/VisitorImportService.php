@@ -86,15 +86,9 @@ class VisitorImportService
         }
 
         $this->batch->refresh();
-        
-        $totalProcessed = $this->batch->success_count + $this->batch->error_count;
-        
-        if ($totalProcessed >= $this->batch->total_rows) {
-            if ($this->batch->error_count > 0 && $this->batch->success_count == 0) {
-                $this->batch->update(['status' => 'failed']);
-            } else {
-                $this->batch->update(['status' => 'completed']);
-            }
+
+        if ($this->batch->error_count >= $this->batch->total_rows) {
+            $this->batch->update(['status' => 'failed']);
         }
 
         return $this->batch->refresh();

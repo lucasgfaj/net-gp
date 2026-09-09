@@ -126,7 +126,14 @@ export default function VisitorTypesIndex() {
                                     <TableCell>
                                         {paginated.from + index}
                                     </TableCell>
-                                    <TableCell>{d.name}</TableCell>
+                                    <TableCell>
+                                        <Link
+                                            href={visitorTypes.show({ visitorType: d.id }).url}
+                                            className="font-medium hover:underline"
+                                        >
+                                            {d.name}
+                                        </Link>
+                                    </TableCell>
                                     <TableCell className="flex justify-end gap-2">
                                         <Link
                                             href={

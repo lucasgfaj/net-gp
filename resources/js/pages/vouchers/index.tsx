@@ -13,7 +13,7 @@ import {
 import VouchersFilters from "@/components/vouchers/vouchers-filters";
 import AppLayout from "@/layouts/app-layout";
 import { type BreadcrumbItem } from "@/types";
-import { Head, router, usePage } from "@inertiajs/react";
+import { Head, Link, router, usePage } from "@inertiajs/react";
 import debounce from "lodash.debounce";
 import { SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -221,7 +221,14 @@ export default function VouchersIndex() {
                             {items.map((v, index: number) => (
                                 <TableRow key={v.id}>
                                     <TableCell>{paginated.from + index}</TableCell>
-                                    <TableCell>{v.login}</TableCell>
+                                    <TableCell>
+                                        <Link
+                                            href={`/vouchers/${v.id}`}
+                                            className="font-medium hover:underline"
+                                        >
+                                            {v.login}
+                                        </Link>
+                                    </TableCell>
                                     {/* <TableCell>{v.password}</TableCell> */}
                                     <TableCell>{shortenName(v.visitor?.name) || "—"}</TableCell>
                                     <TableCell>{shortenName(v.visitor?.creator?.name) || "—"}</TableCell>
@@ -235,7 +242,7 @@ export default function VouchersIndex() {
                                     </TableCell>
                                     <TableCell>
                                         <ConfirmDialog
-                                            title="Gerar nova senha"
+                                            title="Criar novo voucher"
                                             description="Tem certeza que deseja reenviar o voucher para este visitante?"
                                             onConfirm={() =>
                                                 router.post(
