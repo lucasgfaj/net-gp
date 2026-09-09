@@ -91,6 +91,10 @@ class ProcessVisitorImport implements ShouldQueue
                             'email' => $this->visitor->email,
                         ],
                     ]);
+
+                    $this->batch->increment('error_count');
+                    $this->checkCompletion();
+                    return;
                 }
             }
 

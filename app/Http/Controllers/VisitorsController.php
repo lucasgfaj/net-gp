@@ -12,6 +12,7 @@ use App\Exceptions\VisitorException;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class VisitorsController extends Controller
@@ -238,7 +239,17 @@ class VisitorsController extends Controller
 
     public function resendPassword(Visitor $visitor)
     {
-        $result = $this->visitorService->resendPassword($visitor, auth()->id());
+        try {
+            $result = $this->visitorService->resendPassword($visitor, auth()->id());
+        } catch (\Throwable $e) {
+            Log::error("Erro SMTP ao reenviar email", [
+                'visitor_id' => $visitor->id,
+                'email' => $visitor->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->with('error', 'Falha ao reenviar email: ' . $e->getMessage());
+        }
 
         if (!$result) {
             return back()->with('error', 'Voucher não encontrado para este visitante.');
