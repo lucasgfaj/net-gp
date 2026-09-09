@@ -95,7 +95,7 @@ Listagem completa de todos os componentes do sistema Net-GP:
 | `LdapService` | Conexão, autenticação e pesquisa no Active Directory |
 | `SambaService` | SSH via phpseclib3 para criar/deletar usuários no Samba/AD |
 | `ActivityLogService` | Registro transversal de ações (IP, user agent, autor) |
-| `VoucherService` | Geração de credenciais (login=CPF, senha automática) |
+| `VoucherService` | CRUD/gestão de vouchers (criar, atualizar dados/senha, consultar por visitante, deletar) |
 | `VisitorService` | Orquestração de operações de visitante (criar, atualizar, excluir, gerar senha) |
 
 #### 2.2.4 Jobs e Commands
@@ -161,9 +161,10 @@ Componente que estabelece conexão SSH segura com o servidor Samba/Active Direct
 
 - `samba-tool user create <user> <pass>` — criação de usuário temporário
 - `samba-tool user setpassword <user> --newpassword=<pass>` — alteração de senha
+- `samba-tool user setexpiry <user> --days=0 --date=<data>` — definição de validade/expiração
 - `samba-tool user delete <user>` — remoção de usuário
 
-Utilizado na criação de visitantes, geração de novas senhas, reenvio de credenciais e na rotina de expiração automática. Cada operação é executada dentro de uma transação isolada para garantir atomicidade.
+Utilizado na criação de visitantes, geração de novas senhas, alteração de validade e na rotina de expiração automática. Cada operação é executada dentro de uma transação isolada para garantir atomicidade.
 
 #### VisitorsController
 
@@ -197,13 +198,14 @@ Em caso de falha (timeout, erro de conexão), executa rollback apenas daquele vi
 
 #### ProcessVisitorImport (Queue Job)
 
-Job processado em background pelo container Worker. Responsável por processar individualmente cada linha de uma planilha importada:
+Job processado em background pelo container Worker. Responsável por processar individualmente cada linha de uma planilha importada (a validação de CPF/email ocorre antes, no `VisitorImportService`):
 
-- Valida CPF matematicamente (dígitos verificadores)
-- CPF duplicado → atualiza Visitor existente (name, email, phone, school, expires_at) + cria/atualiza Voucher + atualiza Samba
-- Email duplicado → gera erro de validação
-- Cria/atualiza Visitor + Voucher + usuário Samba
-- Dispara email com delay de 2 segundos (rate limiting)
+- CPF duplicado → atualiza Visitor existente (name, email, phone, school, expires_at)
+- Voucher já existente → atualiza `expires_at` do Voucher + `updateSambaUserExpiry` no Samba (não altera senha)
+- Voucher novo → cria Voucher com senha gerada + `createSambaUser`
+- Email enviado apenas se `email_sent=false`, sempre com a notificação `VisitorLogin`
+- Falha SMTP no envio → registra `ImportError` com prefixo `SMTP:` e incrementa `error_count`
+- Agendado com delay de 2 segundos por linha (rate limiting)
 - Registra sucesso ou erro (com número da linha, dados da linha e mensagem)
 
 #### ActivityLogService
@@ -645,7 +647,7 @@ Jobs que falharam após todas as tentativas.
 
 - **Biblioteca**: phpseclib3
 - **Autenticação**: Chave privada (suporta RSA, ECDSA, Ed25519 via `PublicKeyLoader`)
-- **Contrato**: Implementa `SambaInterface` com métodos `createSambaUser`, `userExists`, `updateSambaUserPassword`, `deleteSambaUser`
+- **Contrato**: Implementa `SambaInterface` com métodos `createSambaUser`, `userExists`, `updateSambaUserPassword`, `updateSambaUserExpiry`, `deleteSambaUser`
 - **Host/Porta**: Configurável via `config('app.*')`
 - **Debug**: Loga todos os comandos SSH com código de saída e output via `Log::info('DEBUG SAMBA PHPSECLIB')`
 - **Tratamento de erros**: Retorno estruturado `['success' => bool, 'output' => string|null, 'error' => string|null, 'exit_code' => int|null]` com try/catch genérico
@@ -657,6 +659,7 @@ Jobs que falharam após todas as tentativas.
 | `sudo /usr/bin/samba-tool user create <user> <pass>` | Criar usuário (verifica duplicidade antes) |
 | `sudo /usr/bin/samba-tool user list \| grep -w <user>` | Verificar existência do usuário |
 | `sudo /usr/bin/samba-tool user setpassword <user> --newpassword=<pass>` | Alterar senha |
+| `sudo /usr/bin/samba-tool user setexpiry <user> --days=0 --date=<YYYY-MM-DD>` | Definir data de expiração do usuário |
 | `sudo /usr/bin/samba-tool user delete <user>` | Deletar usuário |
 
 > Todos os argumentos são sanitizados com `escapeshellarg()`. A criação de usuário chama `userExists()` primeiro e retorna erro se o usuário já existir (exit_code 255).
@@ -759,6 +762,9 @@ Em caso de **qualquer** `Throwable` (erro de conexão, timeout, exceção genér
 | GET | /import-batches | ImportBatchController | importBatches.index |
 | GET | /import-batches/{batch} | ImportBatchController | importBatches.show |
 | DELETE | /import-batches/{batch} | ImportBatchController | importBatches.destroy |
+| PUT | /import-errors/{importError} | ImportErrorController | import-errors.update |
+| POST | /import-errors/{importError}/skip | ImportErrorController | import-errors.skip |
+| DELETE | /import-errors/{importError} | ImportErrorController | import-errors.destroy |
 
 #### `auth, admin`
 
@@ -852,7 +858,7 @@ Aplicado nas consultas de `Visitor`, `Voucher` e `DashboardController`:
 
 **Dashboard** — operadores veem apenas métricas (totais, expirações, gráficos, importações) filtradas ao seu departamento. A listagem de departamentos no gráfico também é limitada.
 
-> **Nota técnica**: O filtro de `Visitor` usa `role === 'admin'`, enquanto `Voucher` e `Dashboard` usam `department_id === 1`. Ambos funcionam para o cenário atual (COGETI = id=1), mas seria mais consistente unificar pela role.
+> **Nota técnica**: O filtro de `Visitor`, `Voucher` e `Dashboard` usa `role === 'admin'` (`isAdmin()`), enquanto as consultas de `ImportBatch` usam `department_id === 1`. Ambos funcionam para o cenário atual (COGETI = id=1), mas seria mais consistente unificar pela role.
 
 ---
 
@@ -930,7 +936,7 @@ Implementa `VisitorInterface` e orquestra todas as operações de visitante.
 | Método | Descrição | Transação | Samba | Email | ActivityLog |
 |--------|-----------|-----------|-------|-------|-------------|
 | `create(array)` | Cria visitor + voucher + samba + email | `DB::transaction` | `createSambaUser` | `VisitorLogin` | `visitor_created` |
-| `update(Visitor, array, userId)` | Atualiza dados, recria samba se CPF mudou. Se `reset_password=true`, gera nova senha, atualiza Samba e envia email. | Não | `deleteSambaUser` + `createSambaUser` ou `updateSambaUserPassword` | `UpdateVisitorLogin` (se reset_password) | `visitor_updated` |
+| `update(Visitor, array, userId)` | Atualiza dados, recria samba se CPF mudou. Se `reset_password=true`, gera nova senha e atualiza Samba. Se `expires_at` mudou, atualiza a validade no Samba. **Não envia email.** | Não | `deleteSambaUser` + `createSambaUser` ou `updateSambaUserPassword`; `updateSambaUserExpiry` (se data mudou) | - | `visitor_updated` |
 | `delete(Visitor, userId)` | Deleta samba + voucher + visitor | Não | `deleteSambaUser` (continua se not found) | - | `visitor_deleted` |
 | `generatePassword(Visitor, userId)` | Nova senha, atualiza samba, envia email | Não | `createSambaUser` ou `updateSambaUserPassword` | `UpdateVisitorLogin` | `visitor_password_generated` |
 | `resendPassword(Visitor, userId)` | Reenvia email com credenciais existentes | Não | - | `ResendVisitorLogin` | `visitor_password_resent` |
@@ -952,7 +958,7 @@ O sistema não possui um `EmailService` dedicado. Os emails são enviados via **
 | `VisitorLogin` | Criação de visitante | "Acesso temporário à rede UTFPR - GP" | Login, senha, validade |
 | `UpdateVisitorLogin` | Geração de nova senha | "Acesso temporário à rede UTFPR - GP" | Login, senha atualizada, validade |
 | `ResendVisitorLogin` | Reenvio de credenciais | "Acesso temporário à rede UTFPR - GP" | Login, senha existente, validade |
-| `UserInitialAccess` | Criação de usuário interno | - | - |
+| `UserInitialAccess` | Criação de usuário interno (notificação **definida**, mas atualmente **não é emitida** — `UsersController::store` não dispara) | - | - |
 
 ### Configuração SMTP
 
@@ -1024,21 +1030,25 @@ Implementa `ActivityLogInterface` e registra eventos de auditoria na tabela `act
 
 3. ProcessVisitorImport (Queue Job, tries=3, backoff=60s)
    ├── Extrai login do CPF
-   ├── Gera senha aleatória (se novo) ou mantém (se update)
-   ├── Cria ou atualiza Voucher no banco
-   ├── SambaInterface::createSambaUser(login, password) ou updateSambaUserPassword
-   ├── Se falha → incrementa error_count, retorna
-   ├── Se sucesso → incrementa success_count
-   ├── Se visitor tem email →
-   │   ├── Notifica VisitorLogin (ou UpdateVisitorLogin se update)
+   ├── Se visitor já possui Voucher →
+   │   ├── Atualiza expires_at do Voucher
+   │   └── SambaInterface::updateSambaUserExpiry(login, expires_at) — não altera senha
+   ├── Se não possui Voucher →
+   │   ├── Gera senha aleatória e cria Voucher (login, password, expires_at)
+   │   └── SambaInterface::createSambaUser(login, password)
+   ├── Se falha no Samba → incrementa error_count + checkCompletion, retorna
+   ├── Se visitor tem email e email_sent=false →
+   │   ├── Notifica VisitorLogin (sempre, não usa UpdateVisitorLogin)
    │   ├── Marca email_sent = true, email_sent_at = now
-   └── Em caso de Throwable → incrementa error_count, relança
+   │   └── Se falha SMTP → cria ImportError 'SMTP: ...' + incrementa error_count
+   ├── Sucesso → incrementa success_count + checkCompletion
+   └── Em caso de Throwable → relança (até 3 tentativas)
        └── failed() → ImportError com row_data
 
 4. Gerenciamento de Erros (ImportErrorController)
    ├── PUT /import-errors/{error} → edita dados do erro (name, cpf, email, phone, type_id, expires_at) e reprocessa
    │   └── Recria Visitor a partir dos dados corrigidos + dispatch de ProcessVisitorImport
-   ├── PATCH /import-errors/{error}/skip → marca erro como skipped = true
+   ├── POST /import-errors/{error}/skip → marca erro como skipped = true
    │   └── Quando todos os erros não-pulados são processados, batch auto-completa
    └── DELETE /import-errors/{error} → remove registro de erro
 
