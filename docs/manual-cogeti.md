@@ -44,7 +44,6 @@ Detalhes:
 - Se o e-mail não foi confirmado, o sistema solicita a verificação antes do
   primeiro uso.
 - O mapeamento de departamento e perfil é feito pelo AD a cada login.
-- Recomenda-se ativar a **autenticação em dois fatores (2FA)** (ver seção 12).
 
 ---
 
@@ -248,8 +247,6 @@ Use os indicadores do dashboard para acompanhar:
 - **Senha** — trocar a senha de acesso (o sistema envia confirmação por
   e-mail).
 - **Aparência** — modo claro, escuro ou automático.
-- **Autenticação em dois fatores** — habilite o 2FA (aplicativo autenticador)
-  para aumentar a segurança da conta.
 
 ---
 
@@ -262,6 +259,5 @@ Use os indicadores do dashboard para acompanhar:
   de colunas.
 - Monitore o **dashboard** e as **importações** para detectar lotes com muitos
   erros.
-- Habilite o **2FA**.
 - Em caso de acesso indevido, **exclua o visitante** — o usuário do Samba é
   removido na hora.
