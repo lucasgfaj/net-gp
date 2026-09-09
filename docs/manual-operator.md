@@ -49,8 +49,10 @@ Detalhes:
 
 ### 4.1 Regra de negócio: como o sistema define o seu departamento
 
-O departamento **não é escolhido pelo usuário**. Ele é identificado
-**automaticamente** pelo sistema, no momento do login, da seguinte forma:
+Para quem usa o sistema com base no seu setor (servidor ou estagiário de um
+departamento), o departamento **não é escolhido pelo usuário**. Ele é
+identificado **automaticamente** pelo sistema, no momento do login, da seguinte
+forma:
 
 1. Você informa o **usuário institucional** (credenciais do domínio) e a senha.
 2. O sistema autentica no **Active Directory (AD)** com essas credenciais e
@@ -64,14 +66,12 @@ O departamento **não é escolhido pelo usuário**. Ele é identificado
    exibir somente os dados desse departamento (visitantes, vouchers,
    importações e dashboard).
 5. **Se nenhum dos seus grupos corresponder a um departamento cadastrado**, o
-   acesso é **negado**: a mensagem *"Seu grupo (...) não tem acesso a este
-   sistema. Favor verificar com a COGETI"* é exibida e você não consegue
-   entrar.
+   acesso é **negado** e você não consegue entrar.
 
-> **Resumo da regra:** o departamento da UTFPR **precisa estar cadastrado** no
-> sistema (quem cadastra é a COGETI) para que o usuário do setor consiga
-> acessar. Ao logar, o vínculo é feito automaticamente pelo grupo do AD — não
-> existe seleção manual de departamento.
+> **Resumo da regra:** para servidores e estagiários, o departamento **precisa
+> estar cadastrado** no sistema para que o usuário do setor consiga acessar. Ao
+> logar, o vínculo é feito automaticamente pelo grupo do AD — não existe
+> seleção manual de departamento.
 
 ---
 
