@@ -63,16 +63,39 @@ class ProcessVisitorImport implements ShouldQueue
             }
 
             if ($this->visitor->email && !$this->visitor->email_sent) {
-                $this->visitor->notify(new VisitorLogin(
-                    email: $login,
-                    password: $voucher->password,
-                    expiresAt: $this->visitor->expires_at->format('d/m/Y H:i')
-                ));
+                try {
+                    $this->visitor->notify(new VisitorLogin(
+                        email: $login,
+                        password: $voucher->password,
+                        expiresAt: $this->visitor->expires_at->format('d/m/Y H:i')
+                    ));
 
-                $this->visitor->update([
-                    'email_sent' => true,
-                    'email_sent_at' => now(),
-                ]);
+                    $this->visitor->update([
+                        'email_sent' => true,
+                        'email_sent_at' => now(),
+                    ]);
+                } catch (\Throwable $emailError) {
+                    Log::error("Erro SMTP ao enviar email", [
+                        'visitor_id' => $this->visitor->id,
+                        'email' => $this->visitor->email,
+                        'error' => $emailError->getMessage(),
+                    ]);
+
+                    \App\Models\ImportError::create([
+                        'import_batch_id' => $this->batch->id,
+                        'line_number' => $this->visitor->id,
+                        'error_message' => 'SMTP: ' . $emailError->getMessage(),
+                        'row_data' => [
+                            'name' => $this->visitor->name,
+                            'cpf' => $this->visitor->cpf,
+                            'email' => $this->visitor->email,
+                        ],
+                    ]);
+
+                    $this->batch->increment('error_count');
+                    $this->checkCompletion();
+                    return;
+                }
             }
 
             $this->batch->increment('success_count');

@@ -13,7 +13,7 @@ import importBatches from '@/routes/import-batches';
 import { type BreadcrumbItem } from '@/types';
 import { Head, usePage, router, Link } from '@inertiajs/react';
 import { shortenName } from '@/lib/utils';
-import { Trash2, ArrowLeft, FileSpreadsheet, RefreshCw, Pencil, SkipForward, Loader2 } from 'lucide-react';
+import { Trash2, ArrowLeft, FileSpreadsheet, RefreshCw, Pencil, SkipForward, Loader2, Mail } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface Visitor {
@@ -292,12 +292,13 @@ return (
                                 <TableHead className="font-semibold w-24">Tipo</TableHead>
                                 <TableHead className="font-semibold w-24">Validade</TableHead>
                                 <TableHead className="font-semibold w-24">Email</TableHead>
+                                <TableHead className="font-semibold w-24 text-center">Ações</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {visitors.data.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                                    <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                                         Nenhum visitante importado
                                     </TableCell>
                                 </TableRow>
@@ -318,6 +319,25 @@ return (
                                                 <span className="text-xs text-yellow-600">Pendente</span>
                                             ) : (
                                                 <span className="text-xs text-muted-foreground">-</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            {visitor.email && (
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 w-8 p-0"
+                                                                onClick={() => router.post(`/visitors/${visitor.id}/resend-password`, {}, { preserveScroll: true })}
+                                                            >
+                                                                <Mail className="h-4 w-4" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>Reenviar email</TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
                                             )}
                                         </TableCell>
                                     </TableRow>
